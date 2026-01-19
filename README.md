@@ -1,2 +1,1 @@
-#LifeSimulation
 # LifeSimulation
