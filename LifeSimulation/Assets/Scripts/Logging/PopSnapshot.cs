@@ -4,7 +4,7 @@
 // Requirement:	Event Log
 // Author:		Caden Nieves
 // Date:		03/04/2026
-// Version:		0.1.0
+// Version:		0.2.0
 //
 // Description:
 //    Represents a data structure containing a snapshot of population counts
@@ -24,6 +24,7 @@ public class PopSnapshot
     public int plantCount;
     public int grazerCount;
     public int predatorCount;
+    public int totalPop;
 
     /// <summary>
     /// Creates new population snapshot containg lifeform counts at a 
@@ -39,5 +40,6 @@ public class PopSnapshot
         plantCount = plants;
         grazerCount = grazers;
         predatorCount = predators;
+        totalPop = plants + grazers + predators;
     }
 }
