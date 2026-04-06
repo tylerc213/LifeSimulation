@@ -7,7 +7,9 @@
 // Version:		0.1.0
 //
 // Description:
-//    
+//    Represents a data structure containing a snapshot of population events
+//    at a specific simulation tick and includes an identifying message. To be
+//    called by the LogManager.cs with specfic population fluctuation.
 // -----------------------------------------------------------------------------
 
 using System;

@@ -7,7 +7,7 @@
 // Version:		0.3.0
 //
 // Description:
-//    Handles writing population snapshot data to a JSON log file. Creates a
+//    Handles writing snapshot data to a JSON log file. Creates a
 //    new timestamped log file at simulation start and continuously appends
 //    population snapshots during runtime.
 // -----------------------------------------------------------------------------
