@@ -38,6 +38,16 @@ public class LogManager : MonoBehaviour
     }
 
     /// <summary>
+    /// Used to log snpashot when simulation ends.
+    /// </summary>
+    public void LogFinalSnapshot()
+    {
+        PopSnapshot snapshot = popTracker.GetSnapshot(currentTick);
+
+        simulationLogger.SaveToFile(snapshot);
+    }
+
+    /// <summary>
     /// Update() called once per frame by unity. Advances tick and triggers
     /// logging when interval is reached or an event is triggered.
     /// </summary>
@@ -103,4 +113,5 @@ public class LogManager : MonoBehaviour
 
         }
     }
+
 }

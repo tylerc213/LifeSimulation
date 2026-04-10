@@ -35,7 +35,7 @@ public class SimulationLogger : MonoBehaviour
         filepath = Application.persistentDataPath + "/population_log_" + timestamp + ".json";
 
         // Create file with header
-        File.WriteAllText(filepath, "Tick,Plants,Grazers,Predators\n");
+        File.WriteAllText(filepath, "");
 
         // Print file location to Unity Console
         Debug.Log("Log file created at: " + filepath);
