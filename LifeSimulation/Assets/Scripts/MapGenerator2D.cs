@@ -7,18 +7,18 @@
 // Version:		0.0.0
 //
 // Description:
-//    Generates a hexagonal tilemap using a provided seed and specified X/Y Dimensions
+//    Generates a square tilemap using a provided seed and specified X/Y Dimensions
 // -----------------------------------------------------------------------------
 
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
-/// <summary> Handles procedural tile placement on a hexagonal grid </summary>
+/// <summary> Handles procedural tile placement on a square grid </summary>
 public class MapGenerator2D : MonoBehaviour
 {
     [Header("Tilemap References")]
-    public Tilemap hexTilemap;
-    public TileBase baseHexTile;
+    public Tilemap squareTilemap;
+    public TileBase baseSquareTile;
 
     /// <summary> Executes map generation logic </summary>
     /// <param name="seed"> String used to seed the RNG </param>
@@ -27,7 +27,7 @@ public class MapGenerator2D : MonoBehaviour
     public void GenerateMap(string seed, int width, int height)
     {
         // Wipe existing data to prepare for new generation
-        hexTilemap.ClearAllTiles();
+        squareTilemap.ClearAllTiles();
 
         // Convert string hash to initialize random state
         Random.InitState(seed.GetHashCode());
@@ -38,22 +38,22 @@ public class MapGenerator2D : MonoBehaviour
             for (int y = 0; y < height; y++)
             {
                 // Set starting position to gird origin
-                Vector3Int tilePos = new Vector3Int(x, y, 0);
+                MapCoordinates customPos = new MapCoordinates(x, y);
 
                 // Place tile asset onto the grid
-                hexTilemap.SetTile(tilePos, baseHexTile);
+                Vector3Int tilePos = new Vector3Int(customPos.x, customPos.y, 0);
 
-                // Apply random color to placed tile
-                //float rand = Random.value;
-                //Color tileColor = (rand > 0.95f) ? Color.teal : Color.tan;
+                squareTilemap.SetTile(tilePos, baseSquareTile);
 
-                // Apply tan color to placed tile
-                Color tileColor = Color.tan;
+                float perlin = Mathf.PerlinNoise(x * 0.1f, y * 0.1f);
+
+                Color tileColor = (perlin > 0.67f) ? new Color(0.1f, 0.2f, 0.5f) : Color.tan;
 
                 // Set flags to allow script-based color overriding
-                hexTilemap.SetColor(tilePos, tileColor);
-                hexTilemap.SetTileFlags(tilePos, TileFlags.None);
+                squareTilemap.SetTileFlags(tilePos, TileFlags.None);
+                squareTilemap.SetColor(tilePos, tileColor);
             }
         }
     }
 }
+
