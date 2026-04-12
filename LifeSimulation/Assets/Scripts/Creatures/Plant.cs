@@ -1,26 +1,82 @@
+using System;
 using UnityEngine;
 
-public class Plant : Creature
+/// <summary>
+/// Plant — static organism. Grows to full size over time, then can spread seeds.
+/// When a Grazer overlaps it, the Grazer calls Consume() which destroys the plant.
+///
+/// Attach to a 2D sprite GameObject.  Tag it "Plant".
+/// </summary>
+public class Plant : MonoBehaviour
 {
-    public float EnergyGiven = 25f;
-    public float SunlightNeeded = 10f;
+    [Header("Growth")]
+    [SerializeField] private float growthDuration = 5f;     // seconds to reach full size
+    [SerializeField] private float maxScale = 1f;
+    [SerializeField] private float minScale = 0.2f;
 
-    public enum LeafSize { Small, Medium, Large }
-    public LeafSize Size = LeafSize.Small;
+    [Header("Spreading")]
+    [SerializeField] private float spreadInterval = 10f;   // seconds between seed attempts
+    [SerializeField] private float spreadRadius = 3f;    // how far seeds land
+    [SerializeField] private int maxNearbyPlants = 5;     // suppress spreading if crowded
+    [SerializeField] private float crowdCheckRadius = 2f;
 
-    protected override void Start()
+    [Header("Nutrition")]
+    [SerializeField] private float nutritionValue = 40f;    // hunger restored when eaten
+
+    public float NutritionValue => nutritionValue;
+    public bool IsFullyGrown => _age >= growthDuration;
+
+    private float _age = 0f;
+    private float _spreadTimer = 0f;
+
+    private void Update()
     {
-        base.Start();
+        Grow();
+        TrySpread();
     }
 
-    protected override void Die()
+    private void Grow()
     {
-        base.Die(); // calls Destroy(gameObject)
+        _age = Mathf.Min(_age + Time.deltaTime, growthDuration);
+        float t = _age / growthDuration;
+        float s = Mathf.Lerp(minScale, maxScale, t);
+        transform.localScale = Vector3.one * s;
     }
 
-    // Public wrapper to allow grazers to kill the plant
-    public void Kill()
+    private void TrySpread()
     {
-        Die();
+        if (!IsFullyGrown) return;
+
+        _spreadTimer += Time.deltaTime;
+        if (_spreadTimer < spreadInterval) return;
+        _spreadTimer = 0f;
+
+        // Count nearby plants to avoid overcrowding
+        Collider2D[] nearby = Physics2D.OverlapCircleAll(
+            transform.position, crowdCheckRadius,
+            LayerMask.GetMask("Default"));   // adjust layer if needed
+
+        int plantCount = 0;
+        foreach (var col in nearby)
+            if (col.CompareTag("Plant")) plantCount++;
+
+        if (plantCount >= maxNearbyPlants) return;
+
+        // Spawn a seed nearby
+        Vector2 offset = UnityEngine.Random.insideUnitCircle * spreadRadius;
+        Vector2 seedPos = (Vector2)transform.position + offset;
+
+        // Clamp within camera bounds
+        if (BoundaryManager.Instance != null)
+            seedPos = BoundaryManager.Instance.Clamp(seedPos);
+
+        // Ask EcosystemManager to spawn (respects population caps)
+        EcosystemManager.Instance?.SpawnPlant(seedPos);
+    }
+
+    /// <summary>Called by a Grazer when it eats this plant.</summary>
+    public void Consume()
+    {
+        Destroy(gameObject);
     }
 }
