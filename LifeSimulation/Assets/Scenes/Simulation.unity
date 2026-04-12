@@ -3785,6 +3785,8 @@ GameObject:
   - component: {fileID: 2144076346}
   - component: {fileID: 2144076345}
   - component: {fileID: 2144076348}
+  - component: {fileID: 2144076350}
+  - component: {fileID: 2144076349}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -3850,10 +3852,51 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WorldEditor
   squareTilemap: {fileID: 804650371}
-  grazerPrefab: {fileID: 4183402978578482106, guid: 546bf5399f1fd0c47b714d0d2ef25b92, type: 3}
-  predatorPrefab: {fileID: 3101594067636977986, guid: d2fadd5001d69ae409bf87e8754ff0b7, type: 3}
-  plantPrefab: {fileID: 2075345428037523064, guid: d1138aadb5797c840a2c91b25e5668fe, type: 3}
+  grazerPrefab: {fileID: 0}
+  predatorPrefab: {fileID: 0}
+  plantPrefab: {fileID: 0}
   obstaclePrefab: {fileID: 9063351392609377053, guid: 07c0dfee9ec618a4087e0786ed01f6ab, type: 3}
+--- !u!114 &2144076349
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2144076344}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eae9c681c0564e049b3de076f793e9da, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InteractionSystem
+  plantPrefab: {fileID: 2075345428037523064, guid: d1138aadb5797c840a2c91b25e5668fe, type: 3}
+  grazerprefab: {fileID: 4183402978578482106, guid: 546bf5399f1fd0c47b714d0d2ef25b92, type: 3}
+  predatorPrefab: {fileID: 3101594067636977986, guid: d2fadd5001d69ae409bf87e8754ff0b7, type: 3}
+  maxPlants: 5
+  maxGrazers: 5
+  maxPredators: 5
+  startPlants: 0
+  startGrazers: 0
+  startPredators: 0
+  autoReplenishPlants: 0
+  plantReplenishInterval: 5
+  plantReplenishAmount: 3
+--- !u!114 &2144076350
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2144076344}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eab6d067fea42da4982057c36ffd39b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Pack
+  MinX: 0
+  MaxX: 0
+  MinY: 0
+  MaxY: 0
+  padding: 0.5
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
