@@ -34,14 +34,14 @@ public class MainMenuHandler : MonoBehaviour
     public void OpenConfiguration()
     {
         Debug.Log("Open Configuration Selected");
-        //SceneManager.LoadScene(configurationSceneName);
+        SceneManager.LoadScene(configurationSceneName);
     }
 
     /// <summary> transitions user to leaderboard scene </summary>
     public void OpenLeaderboard()
     {
         Debug.Log("Open Leaderboard Selected");
-        //SceneManager.LoadScene(leaderboardSceneName);
+        SceneManager.LoadScene(leaderboardSceneName);
     }
 
     /// <summary> transitions user to settings scene </summary>
