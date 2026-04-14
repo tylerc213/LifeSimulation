@@ -1,13 +1,14 @@
 // -----------------------------------------------------------------------------
 // Project:		EXTENDED LIFE SIMULATION CAPSTONE ASSIGNMENT
 // Item:		Leaderboard scene UI
-// Requirement:
+// Requirement:	Leaderboard
 // Author:		Benjamin Jones
 // Date:		04/05/2026
 // Version:		0.0.0
 //
 // Description:
-//    Scene navigation for the leaderboard UI (e.g. return to main menu).
+//    Leaderboard scene: category dropdown selects Nakama board IDs; loads top
+//    rows and binds Name/Score TMP fields. Back navigates to main menu.
 // -----------------------------------------------------------------------------
 
 using UnityEngine;
@@ -18,7 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.UI;
 
-/// <summary> handles leaderboard scene UI actions </summary>
+/// <summary> Leaderboard UI: fetch Nakama records per category, fill rows. </summary>
 public class LeaderboardSceneHandler : MonoBehaviour
 {
     [Header("Scene Configuration")]
@@ -49,12 +50,6 @@ public class LeaderboardSceneHandler : MonoBehaviour
     public void OnCategoryChanged()
     {
         StartCoroutine(RefreshSelectedCategoryRoutine());
-    }
-
-    /// <summary> Placeholder for future leaderboard pagination support. </summary>
-    public void LoadNextLeaderboardPage()
-    {
-        // Reserved for future implementation.
     }
 
     private void InitializeDropdown()

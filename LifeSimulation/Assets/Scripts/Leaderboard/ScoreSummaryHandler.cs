@@ -7,7 +7,10 @@
 // Version:		0.0.0
 //
 // Description:
-//    Handles score summary display and button actions for submit/discard flow.
+//    Post-simulation scene: shows the five Nakama category scores from
+//    ScoreSummaryData (filled when leaving Simulation), optional arcade name,
+//    Submit (writes each board via NakamaLeaderboardService) or Quit to main
+//    menu. Can build a minimal themed panel at runtime if the scene has no UI.
 // -----------------------------------------------------------------------------
 
 using System.Collections;
@@ -19,7 +22,7 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
 
-/// <summary> Handles ScoreSummary scene UI interactions. </summary>
+/// <summary> End-of-run summary UI: display metrics, submit to Nakama, or exit. </summary>
 public class ScoreSummaryHandler : MonoBehaviour
 {
     [Header("Scene Configuration")]
@@ -72,12 +75,6 @@ public class ScoreSummaryHandler : MonoBehaviour
     {
         Debug.Log("Score submission discarded by player.");
         SceneManager.LoadScene(mainMenuSceneName);
-    }
-
-    /// <summary> Placeholder for future detailed score model generation. </summary>
-    public void GenerateDetailedScoreBreakdown()
-    {
-        // Reserved for future implementation.
     }
 
     private void RenderSummary()

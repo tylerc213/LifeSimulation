@@ -7,10 +7,11 @@
 // Version:		0.0.0
 //
 // Description:
-//    Minimal Nakama HTTP integration for device authentication, leaderboard
-//    record writes, and top-record listing. Display names are stored only in
-//    record metadata (e.g. {"name":"..."}); leaderboards do not expose name as
-//    a separate queryable field.
+//    Nakama REST client for this project’s arcade leaderboards: authenticate
+//    (device id; optional disposable id per submit), POST scores with
+//    metadata JSON {"name":"..."} for display names, and GET top records.
+//    Used by ScoreSummary (writes) and Leaderboard scene (reads); ranks use
+//    numeric score only—names are not first-class leaderboard fields.
 // -----------------------------------------------------------------------------
 
 using System;
@@ -20,7 +21,7 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
 
-/// <summary> Provides minimal Nakama API calls used by leaderboard scenes. </summary>
+/// <summary> Nakama HTTP: auth, leaderboard write (flat REST body), list records. </summary>
 public class NakamaLeaderboardService : MonoBehaviour
 {
     public static NakamaLeaderboardService Instance;
@@ -78,13 +79,6 @@ public class NakamaLeaderboardService : MonoBehaviour
     private class LeaderboardNameMetadata
     {
         public string name;
-    }
-
-    /// <summary> Older client payloads used displayName; kept for read fallback. </summary>
-    [Serializable]
-    private class LegacyNameMetadata
-    {
-        public string displayName;
     }
 
     [Serializable]
@@ -277,12 +271,6 @@ public class NakamaLeaderboardService : MonoBehaviour
         }
     }
 
-    /// <summary> Provides a placeholder for future retry/backoff enhancements. </summary>
-    public void ConfigureRetryPolicySkeleton()
-    {
-        // Reserved for future implementation.
-    }
-
     private UnityWebRequest BuildJsonRequest(string url, string method, string body)
     {
         UnityWebRequest request = new UnityWebRequest(url, method)
@@ -346,12 +334,6 @@ public class NakamaLeaderboardService : MonoBehaviour
                 if (!string.IsNullOrWhiteSpace(byName.name))
                 {
                     return byName.name;
-                }
-
-                LegacyNameMetadata legacy = JsonUtility.FromJson<LegacyNameMetadata>(normalized);
-                if (!string.IsNullOrWhiteSpace(legacy.displayName))
-                {
-                    return legacy.displayName;
                 }
             }
             catch

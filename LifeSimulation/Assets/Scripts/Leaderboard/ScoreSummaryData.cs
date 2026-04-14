@@ -7,7 +7,9 @@
 // Version:		0.0.0
 //
 // Description:
-//    Stores transient score values between Simulation and ScoreSummary scenes.
+//    Leaderboard board IDs and display labels for the five categories; static
+//    ScoreSummaryPayload handoff from Simulation (summary generation) to the
+//    ScoreSummary scene before Nakama submission.
 // -----------------------------------------------------------------------------
 
 using System;

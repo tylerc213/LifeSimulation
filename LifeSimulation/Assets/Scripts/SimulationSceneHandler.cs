@@ -7,7 +7,10 @@
 // Version:		0.0.0
 //
 // Description:
-//    Handles simulation quit flow and prepares score summary values.
+//    Simulation scene: on quit/finish, finalizes logging, builds
+//    ScoreSummaryPayload (SummaryGenerator or fallback from PopTracker), stores
+//    it in ScoreSummaryData, then loads ScoreSummary. Ensures Quit control on
+//    EditorPanel when present.
 // -----------------------------------------------------------------------------
 
 using UnityEngine;
@@ -15,7 +18,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using TMPro;
 
-/// <summary> Handles Simulation scene UI actions related to score summary. </summary>
+/// <summary> End-of-run transition from Simulation to score summary scene. </summary>
 public class SimulationSceneHandler : MonoBehaviour
 {
     [Header("Scene Configuration")]
@@ -56,12 +59,6 @@ public class SimulationSceneHandler : MonoBehaviour
     public void Quit()
     {
         QuitToScoreSummary();
-    }
-
-    /// <summary> Placeholder for future auto-end trigger integration. </summary>
-    public void AutoEndToScoreSummary()
-    {
-        // Reserved for future implementation.
     }
 
     private ScoreSummaryPayload BuildFallbackPayload()

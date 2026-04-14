@@ -7,8 +7,8 @@
 // Version:		0.0.0
 //
 // Description:
-//    Ensures Unity Player setting "Allow downloads over HTTP" stays enabled
-//    for Nakama HTTP integration during development.
+//    Editor-only guard so Unity allows plain HTTP (e.g. local Nakama on :7350);
+//    without it UnityWebRequest can throw before requests leave the client.
 // -----------------------------------------------------------------------------
 
 #if UNITY_EDITOR
