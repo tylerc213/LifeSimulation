@@ -1,14 +1,14 @@
 // -----------------------------------------------------------------------------
 // Project:		EXTENDED LIFE SIMULATION CAPSTONE ASSIGNMENT
 // Item:		Configuration GUI
-// Requirement:
+// Requirement:	Configuration
 // Author:		Benjamin Jones
 // Date:		04/05/2026
 // Version:		0.0.0
 //
 // Description:
-//    JSON configuration import/export for the configuration scene; schema and
-//    data wiring to be added later.
+//    Configuration scene: import/export simulation settings as JSON, hold
+//    last imported text for downstream wiring, and navigate back to main menu.
 // -----------------------------------------------------------------------------
 
 using System.IO;

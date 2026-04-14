@@ -37,4 +37,7 @@ public class LogEntry
         this.tick = tick;
         this.data = data;
     }
+
+    /// <summary>Required for JsonUtility.FromJson when re-reading log lines.</summary>
+    public LogEntry() { }
 }

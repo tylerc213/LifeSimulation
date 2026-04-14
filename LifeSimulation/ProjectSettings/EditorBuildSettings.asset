@@ -17,6 +17,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Leaderboard.unity
     guid: 8345b5f4cef5a5d43b4bb90b70679136
+  - enabled: 1
+    path: Assets/Scenes/ScoreSummary.unity
+    guid: ea532f2bb3e9473a8c3ef9d3b0d86ef5
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   m_UseUCBPForAssetBundles: 0

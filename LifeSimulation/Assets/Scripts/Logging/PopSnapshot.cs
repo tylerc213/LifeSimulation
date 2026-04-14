@@ -42,4 +42,7 @@ public class PopSnapshot
         predatorCount = predators;
         totalPop = plants + grazers + predators;
     }
+
+    /// <summary>Required for JsonUtility.FromJson in SummaryGenerator.</summary>
+    public PopSnapshot() { }
 }
