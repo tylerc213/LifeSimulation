@@ -2739,6 +2739,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1503027205}
   - component: {fileID: 1503027204}
+  - component: {fileID: 1503027206}
   m_Layer: 0
   m_Name: SimulationManager
   m_TagString: Untagged
@@ -2759,6 +2760,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SimulationManager
   currentSpeed: 1
+  simulationSceneHandler: {fileID: 1503027206}
+--- !u!114 &1503027206
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1503027203}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0d9a4d9e8c434ce0a4d31e4f4f32a08e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SimulationSceneHandler
+  scoreSummarySceneName: ScoreSummary
+  logManager: {fileID: 0}
+  simulationLogger: {fileID: 0}
+  popTracker: {fileID: 0}
 --- !u!4 &1503027205
 Transform:
   m_ObjectHideFlags: 0
@@ -2831,7 +2849,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Button
+  m_text: Quit
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -3653,7 +3671,7 @@ GameObject:
   - component: {fileID: 2082769425}
   - component: {fileID: 2082769424}
   m_Layer: 5
-  m_Name: SpawnObstacleButton
+  m_Name: Quit
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3723,14 +3741,14 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 2144076348}
-        m_TargetAssemblyTypeName: WorldEditor, Assembly-CSharp
-        m_MethodName: SetSelection
-        m_Mode: 3
+      - m_Target: {fileID: 1503027206}
+        m_TargetAssemblyTypeName: SimulationSceneHandler, Assembly-CSharp
+        m_MethodName: Quit
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 4
+          m_IntArgument: 0
           m_FloatArgument: 0
           m_StringArgument: 
           m_BoolArgument: 0

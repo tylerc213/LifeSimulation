@@ -12,7 +12,6 @@
 
 using UnityEngine;
 using System.Collections.Generic;
-using UnityEngine.SceneManagement;
 
 public class SimulationManager : MonoBehaviour
 {
@@ -26,6 +25,7 @@ public class SimulationManager : MonoBehaviour
     [Header("Simulation State")]
     public float currentSpeed = 1.0f;
     private bool isHalted = false;
+    public SimulationSceneHandler simulationSceneHandler;
 
     //
     void Awake() => Instance = this;
@@ -53,7 +53,11 @@ public class SimulationManager : MonoBehaviour
         {
             isHalted = true;
             Time.timeScale = 0;
-            //SceneManager.LoadScene(SummarySceneName);
+
+            if (simulationSceneHandler != null)
+            {
+                simulationSceneHandler.QuitToScoreSummary();
+            }
         }
     }
 }
