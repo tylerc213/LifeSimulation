@@ -3787,6 +3787,7 @@ GameObject:
   - component: {fileID: 2144076348}
   - component: {fileID: 2144076350}
   - component: {fileID: 2144076349}
+  - component: {fileID: 2144076351}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -3824,6 +3825,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MapGenerator2D
   squareTilemap: {fileID: 804650371}
   baseSquareTile: {fileID: 11400000, guid: bb7f0c917fe721a4bbb38afc33574d43, type: 2}
+  obstaclePrefab: {fileID: 9063351392609377053, guid: 07c0dfee9ec618a4087e0786ed01f6ab, type: 3}
+  obstacleSpawnChance: 0.005
+  obstacleMinCluster: 1
+  obstacleMaxCluster: 3
+  startPlants: 15
+  startGrazers: 10
+  startPredators: 5
 --- !u!4 &2144076347
 Transform:
   m_ObjectHideFlags: 0
@@ -3871,12 +3879,9 @@ MonoBehaviour:
   plantPrefab: {fileID: 2075345428037523064, guid: d1138aadb5797c840a2c91b25e5668fe, type: 3}
   grazerprefab: {fileID: 4183402978578482106, guid: 546bf5399f1fd0c47b714d0d2ef25b92, type: 3}
   predatorPrefab: {fileID: 3101594067636977986, guid: d2fadd5001d69ae409bf87e8754ff0b7, type: 3}
-  maxPlants: 5
-  maxGrazers: 5
-  maxPredators: 5
-  startPlants: 0
-  startGrazers: 0
-  startPredators: 0
+  maxPlants: 100
+  maxGrazers: 100
+  maxPredators: 100
   autoReplenishPlants: 0
   plantReplenishInterval: 5
   plantReplenishAmount: 3
@@ -3897,6 +3902,20 @@ MonoBehaviour:
   MinY: 0
   MaxY: 0
   padding: 0.5
+--- !u!114 &2144076351
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2144076344}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ad5eb7563b2e0104ea4e687a312132ae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GrazerPack
+  packRadius: 3
+  flockStrength: 0.1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

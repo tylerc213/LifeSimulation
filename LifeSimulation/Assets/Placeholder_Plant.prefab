@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 6004257593912606716}
   - component: {fileID: 7203731761428207123}
   - component: {fileID: -5385270590963633244}
+  - component: {fileID: 775273452906017622}
   m_Layer: 0
   m_Name: Placeholder_Plant
   m_TagString: Plant
@@ -151,11 +152,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5f909834055c85840a9b226f8a68ccd2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Plant
-  growthDuration: 10
+  growthDuration: 15
   maxScale: 1
   minScale: 0.2
-  spreadInterval: 15
+  spreadInterval: 10
   spreadRadius: 3
   maxNearbyPlants: 5
   crowdCheckRadius: 2
   nutritionValue: 40
+--- !u!114 &775273452906017622
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2075345428037523064}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9604585d7a6a50e4ca34ff1d6ddebddd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlantGenetics

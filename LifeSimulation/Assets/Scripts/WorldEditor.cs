@@ -14,6 +14,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.EventSystems;
 using UnityEngine.Tilemaps;
+using System.Diagnostics;
 
 /// <summary> Executes mouse-driven object placement logic </summary>
 public class WorldEditor : MonoBehaviour
@@ -34,6 +35,7 @@ public class WorldEditor : MonoBehaviour
         // prevent spawning while mousing over UI
         if (Mouse.current.leftButton.wasPressedThisFrame && selection != 0 && !EventSystem.current.IsPointerOverGameObject())
         {
+            UnityEngine.Debug.Log($"Click detected. Selection: {selection}, OverUI: {EventSystem.current.IsPointerOverGameObject()}");
             SpawnAtMouse();
         }
     }
@@ -43,55 +45,51 @@ public class WorldEditor : MonoBehaviour
     public void SetSelection(int type)
     {
         selection = type;
-        Debug.Log("Editor Mode: " + selection);
+        UnityEngine.Debug.Log("Editor Mode: " + selection);
     }
 
     /// <summary> creates prefab of lifeform selection at mouse location </summary>
     void SpawnAtMouse()
     {
         // convert screen-space mouse position to 2D coordinates
+        UnityEngine.Debug.Log("SpawnAtMouse called");
         Vector2 mousePosition = Mouse.current.position.ReadValue();
         Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         mousePos.z = 0;
 
         Vector3Int cellPos = squareTilemap.WorldToCell(mousePos);
 
-        if (squareTilemap.HasTile(cellPos))
-        {
-            // finds the center of the closest cell 
-            Vector3 spawnPos = squareTilemap.GetCellCenterWorld(cellPos);
-            spawnPos.z = 0;
+        UnityEngine.Debug.Log($"HasTile: {squareTilemap.HasTile(cellPos)}, CellPos: {cellPos}, toSpawn null: {plantPrefab == null}");
 
-            GameObject toSpawn = null;
-            string id = "";
 
-            // select correct prefab
-            switch (selection)
+            if (squareTilemap.HasTile(cellPos))
             {
-                case 1:
-                    toSpawn = grazerPrefab;
-                    id = "Grazer";
-                    break;
-                case 2:
-                    toSpawn = predatorPrefab;
-                    id = "Predator";
-                    break;
-                case 3:
-                    toSpawn = plantPrefab;
-                    id = "Plant";
-                    break;
-                case 4:
-                    toSpawn = obstaclePrefab;
-                    id = "Obstacle";
-                    break;
-            }
+                Vector3 spawnPos = squareTilemap.GetCellCenterWorld(cellPos);
+                spawnPos.z = 0;
+                string id = "";
+                UnityEngine.Debug.Log($"EcosystemManager null: {EcosystemManager.Instance == null}");
+                switch (selection)
+                {
+                    case 1:
+                        id = "Grazer";
+                        EcosystemManager.Instance.ManualSpawnGrazer(spawnPos);
+                        break;
+                    case 2:
+                        id = "Predator";
+                        EcosystemManager.Instance.ManualSpawnPredator(spawnPos);
+                        break;
+                    case 3:
+                        id = "Plant";
+                        EcosystemManager.Instance.ManualSpawnPlant(spawnPos);
+                        break;
+                    case 4:
+                        id = "Obstacle";
+                        Instantiate(obstaclePrefab, spawnPos, Quaternion.identity);
+                        break;
+                }
 
-            // create clone of selected prefab at target location
-            if (toSpawn != null)
-            {
-                Instantiate(toSpawn, spawnPos, Quaternion.identity);
-                SimulationManager.Instance.UpdatePopulation(id, 1);
+                if (id != "")
+                    SimulationManager.Instance.UpdatePopulation(id, 1);
             }
-        }
     }
 }
