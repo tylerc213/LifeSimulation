@@ -39,12 +39,20 @@ public class MapGenerator2D : MonoBehaviour
     // random valid spawn positions without landing inside an obstacle.
     private List<Vector3> _openTiles = new List<Vector3>();
 
+    /// <summary> True only after <see cref="GenerateMap"/> has finished (tiles + obstacles). Used to block editor spawns before the first generate.</summary>
+    public bool IsMapReady { get; private set; }
+    /// <summary> True once the user has generated at least one map in this scene session.</summary>
+    public bool HasSimulationStarted { get; private set; }
+
     /// <summary> Executes map generation logic then spawns initial entities </summary>
     /// <param name="seed"> String used to seed the RNG </param>
     /// <param name="width"> Width of map in tiles </param>
     /// <param name="height"> Height of map in tiles </param>
     public void GenerateMap(string seed, int width, int height)
     {
+        IsMapReady = false;
+        HasSimulationStarted = false;
+
         // Wipe existing data to prepare for new generation
         squareTilemap.ClearAllTiles();
         _openTiles.Clear();
@@ -83,10 +91,26 @@ public class MapGenerator2D : MonoBehaviour
         if (obstaclePrefab != null)
             SpawnObstacles();
 
+        IsMapReady = true;
+        HasSimulationStarted = true;
+
         // ── Initial entity spawning ───────────────────────────────────────────
         // Use Invoke so EcosystemManager and BoundaryManager have had a frame
         // to initialise before we ask them to spawn anything.
         Invoke(nameof(SpawnInitialEntities), 0.1f);
+    }
+
+    /// <summary> Random walkable tile center (excludes obstacle cells). Use for UI button spawns.</summary>
+    public bool TryGetRandomOpenTileWorldPosition(out Vector3 worldCenter)
+    {
+        worldCenter = default;
+        if (!IsMapReady || _openTiles.Count == 0)
+        {
+            return false;
+        }
+
+        worldCenter = _openTiles[UnityEngine.Random.Range(0, _openTiles.Count)];
+        return true;
     }
 
     // ── Obstacle Spawning ─────────────────────────────────────────────────────

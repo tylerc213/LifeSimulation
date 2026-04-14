@@ -28,6 +28,7 @@ public class SimulationSceneHandler : MonoBehaviour
     public LogManager logManager;
     public SimulationLogger simulationLogger;
     public PopTracker popTracker;
+    public MapGenerator2D mapGenerator;
 
     void Start()
     {
@@ -40,7 +41,12 @@ public class SimulationSceneHandler : MonoBehaviour
     {
         Debug.Log("Simulation Quit Selected");
 
-        if (logManager != null && simulationLogger != null)
+        if (!HasSimulationStarted())
+        {
+            // Leave the scene anytime; no run was started so scores stay default zeros.
+            ScoreSummaryData.SetCurrentRun(new ScoreSummaryPayload());
+        }
+        else if (logManager != null && simulationLogger != null)
         {
             logManager.LogFinalSnapshot();
             ScoreSummaryPayload generated = SummaryGenerator.GenerateSummaryPayload(simulationLogger.filepath);
@@ -150,6 +156,11 @@ public class SimulationSceneHandler : MonoBehaviour
 
     private void AutoAssignReferences()
     {
+        if (mapGenerator == null)
+        {
+            mapGenerator = FindFirstObjectByType<MapGenerator2D>();
+        }
+
         if (logManager == null)
         {
             logManager = FindFirstObjectByType<LogManager>();
@@ -164,5 +175,10 @@ public class SimulationSceneHandler : MonoBehaviour
         {
             popTracker = FindFirstObjectByType<PopTracker>();
         }
+    }
+
+    private bool HasSimulationStarted()
+    {
+        return mapGenerator != null && mapGenerator.HasSimulationStarted && mapGenerator.IsMapReady;
     }
 }

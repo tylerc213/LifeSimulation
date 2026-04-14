@@ -23,6 +23,10 @@ public class WorldEditor : MonoBehaviour
 {
     [Header("Dependancies")]
     public Tilemap squareTilemap;
+
+    [Tooltip("If unset, uses MapGenerator2D on the same GameObject. Spawns are blocked until Generate Map has finished.")]
+    [SerializeField] private MapGenerator2D mapGenerator;
+
     public GameObject grazerPrefab;
     public GameObject predatorPrefab;
     public GameObject plantPrefab;
@@ -32,11 +36,28 @@ public class WorldEditor : MonoBehaviour
     [Tooltip("When using UI buttons, also spawn one entity immediately (recommended).")]
     [SerializeField] private bool spawnOneOnButtonSelect = true;
 
-    [Tooltip("Attempts to find a random tile with HasTile before giving up.")]
+    [Tooltip("Fallback attempts if open-tile list is unavailable (should be rare).")]
     [SerializeField] private int randomTileMaxAttempts = 96;
 
     // Stores selected placement mode
     private int selection = 0;
+
+    void Awake()
+    {
+        if (mapGenerator == null)
+        {
+            mapGenerator = GetComponent<MapGenerator2D>();
+        }
+    }
+
+    private bool CanSpawnOnMap()
+    {
+        return mapGenerator != null
+               && mapGenerator.IsMapReady
+               && mapGenerator.HasSimulationStarted
+               && squareTilemap != null
+               && EcosystemManager.Instance != null;
+    }
 
     /// <summary> Listens for mouse input every frame </summary>
     void Update()
@@ -53,6 +74,11 @@ public class WorldEditor : MonoBehaviour
 
         // Input System UI module: must pass device id; parameterless IsPointerOverGameObject often blocks all game-view clicks.
         if (IsPointerOverUiBlockingGame())
+        {
+            return;
+        }
+
+        if (!CanSpawnOnMap())
         {
             return;
         }
@@ -93,12 +119,17 @@ public class WorldEditor : MonoBehaviour
     /// <param name="type"> Integer ID of selection type </param>
     public void SetSelection(int type)
     {
+        if (!CanSpawnOnMap())
+        {
+            return;
+        }
+
         selection = type;
         UnityEngine.Debug.Log("Editor Mode: " + selection);
 
         if (spawnOneOnButtonSelect)
         {
-            TrySpawnAtRandomOccupiedCell();
+            TrySpawnAtRandomOpenTile();
         }
     }
 
@@ -112,7 +143,7 @@ public class WorldEditor : MonoBehaviour
     void SpawnAtMouse()
     {
         UnityEngine.Debug.Log("SpawnAtMouse called");
-        if (squareTilemap == null || Camera.main == null)
+        if (!CanSpawnOnMap() || Camera.main == null)
         {
             return;
         }
@@ -125,13 +156,21 @@ public class WorldEditor : MonoBehaviour
         TrySpawnAtWorldPosition(worldOnPlane);
     }
 
-    private bool TrySpawnAtRandomOccupiedCell()
+    /// <summary> Spawns one entity on a random walkable tile (same pool as initial sim spawns — avoids obstacles).</summary>
+    private bool TrySpawnAtRandomOpenTile()
     {
-        if (squareTilemap == null || Camera.main == null || EcosystemManager.Instance == null)
+        if (!CanSpawnOnMap())
         {
             return false;
         }
 
+        if (mapGenerator.TryGetRandomOpenTileWorldPosition(out Vector3 worldCenter))
+        {
+            worldCenter.z = squareTilemap.transform.position.z;
+            return TrySpawnAtWorldPosition(worldCenter);
+        }
+
+        // Fallback: uniform random cell in bounds (may include obstacle cells)
         BoundsInt b = squareTilemap.cellBounds;
         if (b.size.x <= 0 || b.size.y <= 0)
         {
@@ -141,8 +180,8 @@ public class WorldEditor : MonoBehaviour
         for (int attempt = 0; attempt < randomTileMaxAttempts; attempt++)
         {
             Vector3Int cell = new Vector3Int(
-                Random.Range(b.xMin, b.xMax),
-                Random.Range(b.yMin, b.yMax),
+                UnityEngine.Random.Range(b.xMin, b.xMax),
+                UnityEngine.Random.Range(b.yMin, b.yMax),
                 b.zMin);
 
             if (squareTilemap.HasTile(cell))
@@ -158,7 +197,7 @@ public class WorldEditor : MonoBehaviour
 
     private bool TrySpawnAtWorldPosition(Vector3 worldOnPlane)
     {
-        if (squareTilemap == null || EcosystemManager.Instance == null)
+        if (!CanSpawnOnMap())
         {
             return false;
         }

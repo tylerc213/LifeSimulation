@@ -25,16 +25,18 @@ public class LogManager : MonoBehaviour
 
     public PopTracker popTracker;
     public SimulationLogger simulationLogger;
+    public MapGenerator2D mapGenerator;
+    private bool hasLoggedInitialSnapshot;
 
     /// <summary>
     /// When simualtion starts --> log inital population
     /// </summary>
     void Start()
     {
-        // Capture initial population at start of simulation
-        PopSnapshot snapshot = popTracker.GetSnapshot(currentTick);
-
-        simulationLogger.SaveToFile(snapshot);
+        if (mapGenerator == null)
+        {
+            mapGenerator = FindFirstObjectByType<MapGenerator2D>();
+        }
     }
 
     /// <summary>
@@ -53,6 +55,19 @@ public class LogManager : MonoBehaviour
     /// </summary>
     void Update()
     {
+        if (!IsSimulationStarted())
+        {
+            return;
+        }
+
+        if (!hasLoggedInitialSnapshot)
+        {
+            // First logged tick is now tied to map generation (true simulation start).
+            PopSnapshot startSnapshot = popTracker.GetSnapshot(currentTick);
+            simulationLogger.SaveToFile(startSnapshot);
+            hasLoggedInitialSnapshot = true;
+        }
+
         currentTick++;
 
         if (currentTick % logInterval == 0)
@@ -112,6 +127,11 @@ public class LogManager : MonoBehaviour
             }
 
         }
+    }
+
+    private bool IsSimulationStarted()
+    {
+        return mapGenerator != null && mapGenerator.HasSimulationStarted && mapGenerator.IsMapReady;
     }
 
 }
