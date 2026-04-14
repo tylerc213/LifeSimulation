@@ -22,7 +22,17 @@ public class EntityBase : MonoBehaviour
     protected virtual void Awake()
     {
         Health = maxHealth;
-        Hunger = maxHunger * 0.5f;  // start at 50% hunger instead of full
+        Hunger = maxHunger * 0.5f;
+    }
+
+    /// <summary>
+    /// Called by genetics components to scale max health before combat begins.
+    /// Must be called in Awake before any damage is taken.
+    /// </summary>
+    public void ApplyHealthMultiplier(float multiplier)
+    {
+        maxHealth = maxHealth * multiplier;
+        Health = maxHealth;
     }
 
     protected virtual void Update()

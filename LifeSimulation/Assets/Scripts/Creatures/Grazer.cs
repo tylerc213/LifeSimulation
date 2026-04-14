@@ -1,17 +1,15 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Grazer AI — a two-state machine: FLEE (predator nearby) or EAT (seek plants).
-/// Falls back to WANDER when neither stimulus is present.
-///
-/// Requires: Rigidbody2D, Collider2D (trigger on a child for detection).
+/// Grazer AI — FLEE (predator nearby) > SEEK PLANT (hungry) > WANDER.
+/// Integrates with GrazerGenetics for stat modifiers and special behaviours.
 /// Tag this GameObject "Grazer".
 /// </summary>
 [RequireComponent(typeof(Rigidbody2D))]
 public class Grazer : EntityBase
 {
-    // ── Tuning ────────────────────────────────────────────────────────────────
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 3f;
     [SerializeField] private float fleeSpeed = 5f;
@@ -23,7 +21,7 @@ public class Grazer : EntityBase
     [SerializeField] private float predatorDetectRadius = 7f;
 
     [Header("Eating")]
-    [SerializeField] private float eatDistance = 0.4f;    // how close before eating
+    [SerializeField] private float eatDistance = 0.4f;
     [SerializeField] private float eatCooldown = 1f;
 
     [Header("Reproduction")]
@@ -35,12 +33,17 @@ public class Grazer : EntityBase
     private State _state = State.Wander;
     private Rigidbody2D _rb;
     private SteeringAvoidance _avoidance;
+    private GrazerGenetics _genetics;
     private Vector2 _wanderTarget;
     private float _wanderTimer;
     private float _eatTimer;
     private float _reproTimer;
     private Plant _targetPlant;
     private Transform _nearestPredator;
+
+    // Poison tracking
+    private bool _isPoisoned = false;
+    private float _poisonDamageRate = 0f;
 
     // ── Unity ─────────────────────────────────────────────────────────────────
     protected override void Awake()
@@ -50,14 +53,30 @@ public class Grazer : EntityBase
         _rb.gravityScale = 0f;
         _rb.constraints = RigidbodyConstraints2D.FreezeRotation;
         _avoidance = GetComponent<SteeringAvoidance>();
+        _genetics = GetComponent<GrazerGenetics>();
         _reproTimer = reproductionCooldown;
         PickNewWanderTarget();
+    }
+
+    private void Start()
+    {
+        GrazerPack.Instance?.Register(_genetics);
+    }
+
+    protected virtual void OnDestroy()
+    {
+        GrazerPack.Instance?.Unregister(_genetics);
+        if (_genetics != null && _genetics.IsHerdLeader)
+            GrazerPack.UnregisterLeader(_genetics);
     }
 
     protected override void Update()
     {
         base.Update();
         if (IsDead) return;
+
+        if (_isPoisoned)
+            TakeDamage(_poisonDamageRate * Time.deltaTime);
 
         UpdateTimers();
         UpdateState();
@@ -77,14 +96,37 @@ public class Grazer : EntityBase
     // ── Perception ────────────────────────────────────────────────────────────
     private void UpdateState()
     {
-        // Predator check (highest priority)
-        _nearestPredator = FindNearest("Predator", predatorDetectRadius);
-        if (_nearestPredator != null) { _state = State.Flee; return; }
+        // Camouflage: if next to any object, chance to avoid predator detection
+        bool camouflaged = false;
+        if (_genetics != null && _genetics.HasCamouflage)
+        {
+            Collider2D[] nearby = Physics2D.OverlapCircleAll(transform.position, 0.8f);
+            foreach (var c in nearby)
+            {
+                if (c.gameObject == gameObject) continue;
+                if (UnityEngine.Random.value < GrazerGenetics.CamouflageChance) { camouflaged = true; break; }
+            }
+        }
 
-        // Plant check (only when hungry)
+        if (!camouflaged)
+        {
+            // Check shared herd LOS first, then personal vision
+            _nearestPredator = FindNearestFromSet(GrazerPack.Instance?.SharedPredators)
+                            ?? FindNearest("Predator", predatorDetectRadius);
+
+            if (_nearestPredator != null)
+            {
+                GrazerPack.Instance?.BroadcastPredator(_nearestPredator);
+                _state = State.Flee;
+                return;
+            }
+        }
+
+        _nearestPredator = null;
+
         if (Hunger < reproductionHungerThreshold)
         {
-            _targetPlant = FindNearestPlant();
+            _targetPlant = FindBestPlant();
             if (_targetPlant != null) { _state = State.SeekPlant; return; }
         }
 
@@ -106,6 +148,7 @@ public class Grazer : EntityBase
     {
         Vector2 awayDir = ((Vector2)transform.position - (Vector2)_nearestPredator.position).normalized;
         Vector2 vel = awayDir * fleeSpeed;
+        if (_genetics != null) vel *= _genetics.SpeedMultiplier;
         if (_avoidance != null)
         {
             vel = _avoidance.GetAvoidanceVelocity(vel);
@@ -118,7 +161,7 @@ public class Grazer : EntityBase
     {
         if (_targetPlant == null) { _state = State.Wander; return; }
 
-        Vector2 dir = ((Vector2)_targetPlant.transform.position - (Vector2)transform.position);
+        Vector2 dir = (Vector2)_targetPlant.transform.position - (Vector2)transform.position;
         float dist = dir.magnitude;
 
         if (dist < eatDistance)
@@ -129,10 +172,10 @@ public class Grazer : EntityBase
         else
         {
             Vector2 vel = dir.normalized * moveSpeed;
+            if (_genetics != null) vel *= _genetics.SpeedMultiplier;
             if (_avoidance != null)
             {
                 vel = _avoidance.GetAvoidanceVelocity(vel);
-                // Dead-end while seeking a plant — abandon this plant and wander
                 if (_avoidance.IsDeadEnd) { _targetPlant = null; PickNewWanderTarget(); }
             }
             _rb.linearVelocity = vel;
@@ -146,6 +189,17 @@ public class Grazer : EntityBase
             PickNewWanderTarget();
 
         Vector2 vel = toTarget.normalized * (moveSpeed * 0.6f);
+
+        // Herd mentality: blend toward pack centroid if active
+        if (_genetics != null && _genetics.HasHerdMentality
+            && GrazerPack.Instance != null
+            && GrazerPack.Instance.HasPackCompanion(_genetics))
+        {
+            vel += GrazerPack.Instance.GetFlockOffset(_genetics);
+        }
+
+        if (_genetics != null) vel *= _genetics.SpeedMultiplier;
+
         if (_avoidance != null)
         {
             vel = _avoidance.GetAvoidanceVelocity(vel);
@@ -158,11 +212,38 @@ public class Grazer : EntityBase
     private void TryEat(Plant plant)
     {
         if (_eatTimer > 0f || plant == null) return;
+
+        // Attractiveness check — bitter/tasty/poisonous affect willingness
+        if (UnityEngine.Random.value > plant.EatAttractiveness) { _targetPlant = null; return; }
+
         _eatTimer = eatCooldown;
         Feed(plant.NutritionValue);
         Heal(10f);
+
+        if (plant.IsPoisonous)
+        {
+            _isPoisoned = true;
+            _poisonDamageRate = plant.PoisonDamagePerSec;
+        }
+
         plant.Consume();
         _targetPlant = null;
+    }
+
+    /// <summary>Reflect damage back to attacker if Spiky trait is active.</summary>
+    public override void TakeDamage(float amount)
+    {
+        if (_genetics != null && _genetics.HasSpiky)
+        {
+            Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, 1f);
+            foreach (var h in hits)
+            {
+                if (!h.CompareTag("Predator")) continue;
+                h.GetComponent<EntityBase>()?.TakeDamage(amount * GrazerGenetics.SpikyReflect);
+                break;
+            }
+        }
+        base.TakeDamage(amount);
     }
 
     private void TryReproduce()
@@ -170,7 +251,23 @@ public class Grazer : EntityBase
         if (_reproTimer > 0f) return;
         if (Hunger < reproductionHungerThreshold) return;
         _reproTimer = reproductionCooldown;
-        EcosystemManager.Instance?.SpawnGrazer((Vector2)transform.position);
+
+        // Find a nearby mate to inherit from
+        Genome myGenome = _genetics != null ? _genetics.Genome : Genome.RandomGrazer();
+        Genome mateGenome = FindMateGenome("Grazer") ?? myGenome;
+        EcosystemManager.Instance?.SpawnGrazerOffspring((Vector2)transform.position, myGenome, mateGenome);
+    }
+
+    private Genome FindMateGenome(string tag)
+    {
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, 3f);
+        foreach (var h in hits)
+        {
+            if (!h.CompareTag(tag) || h.gameObject == gameObject) continue;
+            GrazerGenetics g = h.GetComponent<GrazerGenetics>();
+            if (g != null) return g.Genome;
+        }
+        return null;
     }
 
     private void PickNewWanderTarget()
@@ -178,7 +275,6 @@ public class Grazer : EntityBase
         _wanderTimer = wanderInterval;
         Vector2 offset = UnityEngine.Random.insideUnitCircle * wanderRadius;
         _wanderTarget = (Vector2)transform.position + offset;
-
         if (BoundaryManager.Instance != null)
             _wanderTarget = BoundaryManager.Instance.Clamp(_wanderTarget);
     }
@@ -198,18 +294,38 @@ public class Grazer : EntityBase
         return nearest;
     }
 
-    private Plant FindNearestPlant()
+    private Transform FindNearestFromSet(IEnumerable<Transform> set)
+    {
+        if (set == null) return null;
+        Transform nearest = null;
+        float minDist = float.MaxValue;
+        foreach (var t in set)
+        {
+            if (t == null) continue;
+            float d = Vector2.Distance(transform.position, t.position);
+            if (d < minDist) { minDist = d; nearest = t; }
+        }
+        return nearest;
+    }
+
+    /// <summary>
+    /// Picks the most attractive fully-grown plant in range.
+    /// Weighs attractiveness score against distance so grazers don't ignore nearby plants
+    /// in favour of a very tasty but far-away one.
+    /// </summary>
+    private Plant FindBestPlant()
     {
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, plantDetectRadius);
         Plant best = null;
-        float minDist = float.MaxValue;
+        float bestScore = -1f;
         foreach (var h in hits)
         {
             if (!h.CompareTag("Plant")) continue;
             Plant p = h.GetComponent<Plant>();
             if (p == null || !p.IsFullyGrown) continue;
-            float d = Vector2.Distance(transform.position, h.transform.position);
-            if (d < minDist) { minDist = d; best = p; }
+            float dist = Vector2.Distance(transform.position, h.transform.position);
+            float score = p.EatAttractiveness / (dist + 0.1f);
+            if (score > bestScore) { bestScore = score; best = p; }
         }
         return best;
     }

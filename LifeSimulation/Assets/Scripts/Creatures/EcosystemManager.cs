@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using UnityEngine;
 
 /// <summary>
@@ -23,11 +22,6 @@ public class EcosystemManager : MonoBehaviour
     [SerializeField] private int maxGrazers = 20;
     [SerializeField] private int maxPredators = 6;
 
-    [Header("Initial Counts")]
-    [SerializeField] private int startPlants = 15;
-    [SerializeField] private int startGrazers = 8;
-    [SerializeField] private int startPredators = 2;
-
     [Header("Auto-replenish Plants")]
     [SerializeField] private bool autoReplenishPlants = true;
     [SerializeField] private float plantReplenishInterval = 5f;
@@ -49,12 +43,6 @@ public class EcosystemManager : MonoBehaviour
         Instance = this;
     }
 
-    private void Start()
-    {
-        // Wait one frame so BoundaryManager has initialised
-        Invoke(nameof(SpawnInitial), 0.05f);
-    }
-
     private void Update()
     {
         if (!autoReplenishPlants) return;
@@ -65,14 +53,6 @@ public class EcosystemManager : MonoBehaviour
             for (int i = 0; i < plantReplenishAmount; i++)
                 SpawnPlant(RandomPosition());
         }
-    }
-
-    // ── Initial Spawning ──────────────────────────────────────────────────────
-    private void SpawnInitial()
-    {
-        for (int i = 0; i < startPlants; i++) DoSpawnPlant(RandomPosition());
-        for (int i = 0; i < startGrazers; i++) DoSpawnGrazer(RandomPosition());
-        for (int i = 0; i < startPredators; i++) DoSpawnPredator(RandomPosition());
     }
 
     // ── Public Spawn Methods ──────────────────────────────────────────────────
@@ -89,15 +69,13 @@ public class EcosystemManager : MonoBehaviour
     public void SpawnGrazer(Vector2 position)
     {
         if (_grazerCount >= maxGrazers) return;
-        Vector2 spawnPos = Offset(position);
-        DoSpawnGrazer(spawnPos);
+        DoSpawnGrazer(Offset(position), null);
     }
 
     public void SpawnPredator(Vector2 position)
     {
         if (_predatorCount >= maxPredators) return;
-        Vector2 spawnPos = Offset(position);
-        DoSpawnPredator(spawnPos);
+        DoSpawnPredator(Offset(position), null);
     }
 
     /// <summary>
@@ -105,23 +83,36 @@ public class EcosystemManager : MonoBehaviour
     /// so the player's intent is always respected.
     /// </summary>
     public void ManualSpawnPlant(Vector2 position) => DoSpawnPlant(position);
-    public void ManualSpawnGrazer(Vector2 position) => DoSpawnGrazer(position);
-    public void ManualSpawnPredator(Vector2 position) => DoSpawnPredator(position);
+    public void ManualSpawnGrazer(Vector2 position) => DoSpawnGrazer(position, null);
+    public void ManualSpawnPredator(Vector2 position) => DoSpawnPredator(position, null);
+
+    /// <summary>Called by Grazer.TryReproduce — passes parent genomes for Mendelian inheritance.</summary>
+    public void SpawnGrazerOffspring(Vector2 position, Genome parentA, Genome parentB)
+    {
+        if (_grazerCount >= maxGrazers) return;
+        DoSpawnGrazer(Offset(position), Genome.Inherit(parentA, parentB));
+    }
+
+    /// <summary>Called by Predator.TryReproduce — passes parent genomes for Mendelian inheritance.</summary>
+    public void SpawnPredatorOffspring(Vector2 position, Genome parentA, Genome parentB)
+    {
+        if (_predatorCount >= maxPredators) return;
+        DoSpawnPredator(Offset(position), Genome.Inherit(parentA, parentB));
+    }
 
     // ── Internal Spawn Helpers (each spawns exactly ONE) ─────────────────────
 
     private void DoSpawnPlant(Vector2 position)
     {
-        UnityEngine.Debug.Log($"DoSpawnGrazer called. Prefab null? {grazerprefab == null}, Count: {_grazerCount}, Max: {maxGrazers}");
         if (plantPrefab == null) return;
         GameObject go = Instantiate(plantPrefab, position, Quaternion.identity);
         _plantCount++;
-        // Plant doesn't extend EntityBase, so use PlantDeathProxy to catch Destroy
         PlantDeathProxy proxy = go.AddComponent<PlantDeathProxy>();
         proxy.Init(() => _plantCount--);
+        // Genetics initialised by PlantGenetics.Awake (random genome)
     }
 
-    private void DoSpawnGrazer(Vector2 spawnPos)
+    private void DoSpawnGrazer(Vector2 spawnPos, Genome genome)
     {
         if (grazerprefab == null) return;
         if (BoundaryManager.Instance != null)
@@ -129,9 +120,12 @@ public class EcosystemManager : MonoBehaviour
         GameObject go = Instantiate(grazerprefab, spawnPos, Quaternion.identity);
         _grazerCount++;
         go.GetComponent<EntityBase>()?.OnDeath.AddListener(() => _grazerCount--);
+        // Provide inherited genome if supplied; otherwise GrazerGenetics.Awake randomises
+        if (genome != null)
+            go.GetComponent<GrazerGenetics>()?.Init(genome);
     }
 
-    private void DoSpawnPredator(Vector2 spawnPos)
+    private void DoSpawnPredator(Vector2 spawnPos, Genome genome)
     {
         if (predatorPrefab == null) return;
         if (BoundaryManager.Instance != null)
@@ -139,6 +133,8 @@ public class EcosystemManager : MonoBehaviour
         GameObject go = Instantiate(predatorPrefab, spawnPos, Quaternion.identity);
         _predatorCount++;
         go.GetComponent<EntityBase>()?.OnDeath.AddListener(() => _predatorCount--);
+        if (genome != null)
+            go.GetComponent<PredatorGenetics>()?.Init(genome);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

@@ -23,11 +23,22 @@ public class Plant : MonoBehaviour
     [Header("Nutrition")]
     [SerializeField] private float nutritionValue = 40f;    // hunger restored when eaten
 
-    public float NutritionValue => nutritionValue;
+    // Genetics component — optional, applied at spawn
+    private PlantGenetics _genetics;
+
+    public float NutritionValue => nutritionValue * (_genetics != null ? _genetics.NutritionMultiplier : 1f);
+    public float EatAttractiveness => _genetics != null ? _genetics.EatAttractiveness : 1f;
+    public bool IsPoisonous => _genetics != null && _genetics.IsPoisonous;
+    public float PoisonDamagePerSec => _genetics != null ? _genetics.PoisonDamagePerSec : 0f;
     public bool IsFullyGrown => _age >= growthDuration;
 
     private float _age = 0f;
     private float _spreadTimer = 0f;
+
+    private void Awake()
+    {
+        _genetics = GetComponent<PlantGenetics>();
+    }
 
     private void Update()
     {

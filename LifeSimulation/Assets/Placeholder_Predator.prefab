@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 7015945178738814978}
   - component: {fileID: -8156833817144362108}
   - component: {fileID: 8229067374957265206}
+  - component: {fileID: -7840600471218686527}
   m_Layer: 0
   m_Name: Placeholder_Predator
   m_TagString: Predator
@@ -195,8 +196,8 @@ MonoBehaviour:
   attackDamage: 60
   attackCooldown: 1
   nutritionGain: 60
-  reproductionHungerThreshold: 80
-  reproductionCooldown: 100
+  reproductionHungerThreshold: 50
+  reproductionCooldown: 20
 --- !u!114 &-8156833817144362108
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -255,3 +256,15 @@ CircleCollider2D:
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0.21133333}
   m_Radius: 0.5
+--- !u!114 &-7840600471218686527
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3101594067636977986}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d8b722fac0d3df44282e1d627c75c547, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PredatorGenetics
