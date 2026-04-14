@@ -32,14 +32,7 @@ public class WorldEditor : MonoBehaviour
     public GameObject plantPrefab;
     public GameObject obstaclePrefab;
 
-    [Header("Optional")]
-    [Tooltip("When using UI buttons, also spawn one entity immediately (recommended).")]
-    [SerializeField] private bool spawnOneOnButtonSelect = true;
-
-    [Tooltip("Fallback attempts if open-tile list is unavailable (should be rare).")]
-    [SerializeField] private int randomTileMaxAttempts = 96;
-
-    // Stores selected placement mode
+    // Stores selected placement mode (set by UI buttons; spawn only on map click)
     private int selection = 0;
 
     void Awake()
@@ -115,7 +108,7 @@ public class WorldEditor : MonoBehaviour
         return EventSystem.current.IsPointerOverGameObject();
     }
 
-    /// <summary> Updates current selection of lifeform to place from UI buttons </summary>
+    /// <summary> Selects which entity type to place; actual spawn happens on the next valid map click.</summary>
     /// <param name="type"> Integer ID of selection type </param>
     public void SetSelection(int type)
     {
@@ -126,14 +119,9 @@ public class WorldEditor : MonoBehaviour
 
         selection = type;
         UnityEngine.Debug.Log("Editor Mode: " + selection);
-
-        if (spawnOneOnButtonSelect)
-        {
-            TrySpawnAtRandomOpenTile();
-        }
     }
 
-    /// <summary> Same as SetSelection but explicit name for UI wiring (spawns one if spawnOneOnButtonSelect is on).</summary>
+    /// <summary> UI alias for <see cref="SetSelection"/>.</summary>
     public void SelectAndSpawnOne(int type)
     {
         SetSelection(type);
@@ -154,45 +142,6 @@ public class WorldEditor : MonoBehaviour
         }
 
         TrySpawnAtWorldPosition(worldOnPlane);
-    }
-
-    /// <summary> Spawns one entity on a random walkable tile (same pool as initial sim spawns — avoids obstacles).</summary>
-    private bool TrySpawnAtRandomOpenTile()
-    {
-        if (!CanSpawnOnMap())
-        {
-            return false;
-        }
-
-        if (mapGenerator.TryGetRandomOpenTileWorldPosition(out Vector3 worldCenter))
-        {
-            worldCenter.z = squareTilemap.transform.position.z;
-            return TrySpawnAtWorldPosition(worldCenter);
-        }
-
-        // Fallback: uniform random cell in bounds (may include obstacle cells)
-        BoundsInt b = squareTilemap.cellBounds;
-        if (b.size.x <= 0 || b.size.y <= 0)
-        {
-            return false;
-        }
-
-        for (int attempt = 0; attempt < randomTileMaxAttempts; attempt++)
-        {
-            Vector3Int cell = new Vector3Int(
-                UnityEngine.Random.Range(b.xMin, b.xMax),
-                UnityEngine.Random.Range(b.yMin, b.yMax),
-                b.zMin);
-
-            if (squareTilemap.HasTile(cell))
-            {
-                Vector3 spawnPos = squareTilemap.GetCellCenterWorld(cell);
-                spawnPos.z = squareTilemap.transform.position.z;
-                return TrySpawnAtWorldPosition(spawnPos);
-            }
-        }
-
-        return false;
     }
 
     private bool TrySpawnAtWorldPosition(Vector3 worldOnPlane)

@@ -100,19 +100,6 @@ public class MapGenerator2D : MonoBehaviour
         Invoke(nameof(SpawnInitialEntities), 0.1f);
     }
 
-    /// <summary> Random walkable tile center (excludes obstacle cells). Use for UI button spawns.</summary>
-    public bool TryGetRandomOpenTileWorldPosition(out Vector3 worldCenter)
-    {
-        worldCenter = default;
-        if (!IsMapReady || _openTiles.Count == 0)
-        {
-            return false;
-        }
-
-        worldCenter = _openTiles[UnityEngine.Random.Range(0, _openTiles.Count)];
-        return true;
-    }
-
     // ── Obstacle Spawning ─────────────────────────────────────────────────────
 
     private void SpawnObstacles()
