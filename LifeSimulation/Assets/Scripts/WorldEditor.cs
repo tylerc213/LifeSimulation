@@ -14,7 +14,9 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.EventSystems;
 using UnityEngine.Tilemaps;
-using System.Diagnostics;
+#if ENABLE_LEGACY_INPUT_MANAGER
+using LegacyInput = UnityEngine.Input;
+#endif
 
 /// <summary> Executes mouse-driven object placement logic </summary>
 public class WorldEditor : MonoBehaviour
@@ -26,18 +28,65 @@ public class WorldEditor : MonoBehaviour
     public GameObject plantPrefab;
     public GameObject obstaclePrefab;
 
+    [Header("Optional")]
+    [Tooltip("When using UI buttons, also spawn one entity immediately (recommended).")]
+    [SerializeField] private bool spawnOneOnButtonSelect = true;
+
+    [Tooltip("Attempts to find a random tile with HasTile before giving up.")]
+    [SerializeField] private int randomTileMaxAttempts = 96;
+
     // Stores selected placement mode
     private int selection = 0;
 
     /// <summary> Listens for mouse input every frame </summary>
     void Update()
     {
-        // prevent spawning while mousing over UI
-        if (Mouse.current.leftButton.wasPressedThisFrame && selection != 0 && !EventSystem.current.IsPointerOverGameObject())
+        if (selection == 0)
         {
-            UnityEngine.Debug.Log($"Click detected. Selection: {selection}, OverUI: {EventSystem.current.IsPointerOverGameObject()}");
-            SpawnAtMouse();
+            return;
         }
+
+        if (!WasPrimaryClickPressedThisFrame())
+        {
+            return;
+        }
+
+        // Input System UI module: must pass device id; parameterless IsPointerOverGameObject often blocks all game-view clicks.
+        if (IsPointerOverUiBlockingGame())
+        {
+            return;
+        }
+
+        UnityEngine.Debug.Log($"Click detected. Selection: {selection}");
+        SpawnAtMouse();
+    }
+
+    private static bool WasPrimaryClickPressedThisFrame()
+    {
+        if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+        {
+            return true;
+        }
+#if ENABLE_LEGACY_INPUT_MANAGER
+        return LegacyInput.GetMouseButtonDown(0);
+#else
+        return false;
+#endif
+    }
+
+    private static bool IsPointerOverUiBlockingGame()
+    {
+        if (EventSystem.current == null)
+        {
+            return false;
+        }
+
+        if (Mouse.current != null)
+        {
+            return EventSystem.current.IsPointerOverGameObject(Mouse.current.deviceId);
+        }
+
+        return EventSystem.current.IsPointerOverGameObject();
     }
 
     /// <summary> Updates current selection of lifeform to place from UI buttons </summary>
@@ -46,50 +95,158 @@ public class WorldEditor : MonoBehaviour
     {
         selection = type;
         UnityEngine.Debug.Log("Editor Mode: " + selection);
+
+        if (spawnOneOnButtonSelect)
+        {
+            TrySpawnAtRandomOccupiedCell();
+        }
+    }
+
+    /// <summary> Same as SetSelection but explicit name for UI wiring (spawns one if spawnOneOnButtonSelect is on).</summary>
+    public void SelectAndSpawnOne(int type)
+    {
+        SetSelection(type);
     }
 
     /// <summary> creates prefab of lifeform selection at mouse location </summary>
     void SpawnAtMouse()
     {
-        // convert screen-space mouse position to 2D coordinates
         UnityEngine.Debug.Log("SpawnAtMouse called");
-        Vector2 mousePosition = Mouse.current.position.ReadValue();
-        Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-        mousePos.z = 0;
+        if (squareTilemap == null || Camera.main == null)
+        {
+            return;
+        }
 
-        Vector3Int cellPos = squareTilemap.WorldToCell(mousePos);
+        if (!TryGetWorldPointOnTilemapPlane(GetPointerScreenPosition(), out Vector3 worldOnPlane))
+        {
+            return;
+        }
 
-        UnityEngine.Debug.Log($"HasTile: {squareTilemap.HasTile(cellPos)}, CellPos: {cellPos}, toSpawn null: {plantPrefab == null}");
+        TrySpawnAtWorldPosition(worldOnPlane);
+    }
 
+    private bool TrySpawnAtRandomOccupiedCell()
+    {
+        if (squareTilemap == null || Camera.main == null || EcosystemManager.Instance == null)
+        {
+            return false;
+        }
 
-            if (squareTilemap.HasTile(cellPos))
+        BoundsInt b = squareTilemap.cellBounds;
+        if (b.size.x <= 0 || b.size.y <= 0)
+        {
+            return false;
+        }
+
+        for (int attempt = 0; attempt < randomTileMaxAttempts; attempt++)
+        {
+            Vector3Int cell = new Vector3Int(
+                Random.Range(b.xMin, b.xMax),
+                Random.Range(b.yMin, b.yMax),
+                b.zMin);
+
+            if (squareTilemap.HasTile(cell))
             {
-                Vector3 spawnPos = squareTilemap.GetCellCenterWorld(cellPos);
-                spawnPos.z = 0;
-                string id = "";
-                UnityEngine.Debug.Log($"EcosystemManager null: {EcosystemManager.Instance == null}");
-                switch (selection)
-                {
-                    case 1:
-                        id = "Grazer";
-                        EcosystemManager.Instance.ManualSpawnGrazer(spawnPos);
-                        break;
-                    case 2:
-                        id = "Predator";
-                        EcosystemManager.Instance.ManualSpawnPredator(spawnPos);
-                        break;
-                    case 3:
-                        id = "Plant";
-                        EcosystemManager.Instance.ManualSpawnPlant(spawnPos);
-                        break;
-                    case 4:
-                        id = "Obstacle";
-                        Instantiate(obstaclePrefab, spawnPos, Quaternion.identity);
-                        break;
-                }
-
-                if (id != "")
-                    SimulationManager.Instance.UpdatePopulation(id, 1);
+                Vector3 spawnPos = squareTilemap.GetCellCenterWorld(cell);
+                spawnPos.z = squareTilemap.transform.position.z;
+                return TrySpawnAtWorldPosition(spawnPos);
             }
+        }
+
+        return false;
+    }
+
+    private bool TrySpawnAtWorldPosition(Vector3 worldOnPlane)
+    {
+        if (squareTilemap == null || EcosystemManager.Instance == null)
+        {
+            return false;
+        }
+
+        Vector3Int cellPos = squareTilemap.WorldToCell(worldOnPlane);
+
+        UnityEngine.Debug.Log($"HasTile: {squareTilemap.HasTile(cellPos)}, CellPos: {cellPos}");
+
+        if (!squareTilemap.HasTile(cellPos))
+        {
+            return false;
+        }
+
+        Vector3 spawnPos = squareTilemap.GetCellCenterWorld(cellPos);
+        spawnPos.z = squareTilemap.transform.position.z;
+        string id = "";
+        switch (selection)
+        {
+            case 1:
+                id = "Grazer";
+                EcosystemManager.Instance.ManualSpawnGrazer(spawnPos);
+                break;
+            case 2:
+                id = "Predator";
+                EcosystemManager.Instance.ManualSpawnPredator(spawnPos);
+                break;
+            case 3:
+                id = "Plant";
+                EcosystemManager.Instance.ManualSpawnPlant(spawnPos);
+                break;
+            case 4:
+                id = "Obstacle";
+                if (obstaclePrefab != null)
+                {
+                    Instantiate(obstaclePrefab, spawnPos, Quaternion.identity);
+                }
+                break;
+        }
+
+        if (id != "" && SimulationManager.Instance != null)
+        {
+            SimulationManager.Instance.UpdatePopulation(id, 1);
+        }
+
+        return true;
+    }
+
+    private static Vector2 GetPointerScreenPosition()
+    {
+        if (Mouse.current != null)
+        {
+            return Mouse.current.position.ReadValue();
+        }
+#if ENABLE_LEGACY_INPUT_MANAGER
+        return LegacyInput.mousePosition;
+#else
+        return Vector2.zero;
+#endif
+    }
+
+    /// <summary>
+    /// Orthographic + Input.mouse z=0 breaks ScreenToWorldPoint; intersect the camera ray with the tilemap Z plane.
+    /// </summary>
+    private bool TryGetWorldPointOnTilemapPlane(Vector2 screenPx, out Vector3 worldPoint)
+    {
+        worldPoint = default;
+        Camera cam = Camera.main;
+        if (cam == null || squareTilemap == null)
+        {
+            return false;
+        }
+
+        float planeZ = squareTilemap.transform.position.z;
+        Ray ray = cam.ScreenPointToRay(new Vector3(screenPx.x, screenPx.y, 0f));
+
+        if (Mathf.Abs(ray.direction.z) > 1e-5f)
+        {
+            float t = (planeZ - ray.origin.z) / ray.direction.z;
+            if (t >= 0f)
+            {
+                worldPoint = ray.GetPoint(t);
+                return true;
+            }
+        }
+
+        // Fallback: distance from camera to plane along forward (typical 2D setup).
+        float fallbackZ = Mathf.Abs(cam.transform.position.z - planeZ);
+        worldPoint = cam.ScreenToWorldPoint(new Vector3(screenPx.x, screenPx.y, fallbackZ));
+        return true;
     }
 }

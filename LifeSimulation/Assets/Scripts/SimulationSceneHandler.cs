@@ -63,7 +63,21 @@ public class SimulationSceneHandler : MonoBehaviour
 
     private ScoreSummaryPayload BuildFallbackPayload()
     {
-        PopSnapshot snapshot = popTracker != null ? popTracker.GetSnapshot(0) : new PopSnapshot(0, 0, 0, 0);
+        PopSnapshot snapshot;
+        if (popTracker != null)
+        {
+            snapshot = popTracker.GetSnapshot(0);
+        }
+        else if (EcosystemManager.Instance != null)
+        {
+            EcosystemManager eco = EcosystemManager.Instance;
+            snapshot = new PopSnapshot(0, eco.PlantCount, eco.GrazerCount, eco.PredatorCount);
+        }
+        else
+        {
+            snapshot = new PopSnapshot(0, 0, 0, 0);
+        }
+
         int diversity = 0;
         diversity += snapshot.plantCount > 0 ? 1 : 0;
         diversity += snapshot.grazerCount > 0 ? 1 : 0;

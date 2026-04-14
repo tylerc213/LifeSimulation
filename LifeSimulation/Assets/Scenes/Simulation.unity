@@ -2740,6 +2740,9 @@ GameObject:
   - component: {fileID: 1503027205}
   - component: {fileID: 1503027204}
   - component: {fileID: 1503027206}
+  - component: {fileID: 1503027207}
+  - component: {fileID: 1503027208}
+  - component: {fileID: 1503027209}
   m_Layer: 0
   m_Name: SimulationManager
   m_TagString: Untagged
@@ -2774,9 +2777,55 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SimulationSceneHandler
   scoreSummarySceneName: ScoreSummary
-  logManager: {fileID: 0}
-  simulationLogger: {fileID: 0}
-  popTracker: {fileID: 0}
+  logManager: {fileID: 1503027208}
+  simulationLogger: {fileID: 1503027207}
+  popTracker: {fileID: 1503027209}
+--- !u!114 &1503027207
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1503027203}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc6065311941dd042bb22960b8cae40a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SimulationLogger
+  filepath: 
+--- !u!114 &1503027208
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1503027203}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6c8d554e86183a34d81adadf3eab9d99, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LogManager
+  currentTick: 0
+  logInterval: 600
+  popTracker: {fileID: 1503027209}
+  simulationLogger: {fileID: 1503027207}
+--- !u!114 &1503027209
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1503027203}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b0d23e0a57152d48be44993f8999654, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PopTracker
+  ecosystemManager: {fileID: 2144076349}
+  simulationManager: {fileID: 1503027204}
+  plantPopulationKey: Plant
+  grazerPopulationKey: Grazer
+  predatorPopulationKey: Predator
 --- !u!4 &1503027205
 Transform:
   m_ObjectHideFlags: 0

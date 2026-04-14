@@ -34,6 +34,11 @@ public class EcosystemManager : MonoBehaviour
     private int _grazerCount;
     private int _predatorCount;
 
+    /// <summary> Current counts for logging / UI (SimulationManager.population is only updated by editor placement).</summary>
+    public int PlantCount => _plantCount;
+    public int GrazerCount => _grazerCount;
+    public int PredatorCount => _predatorCount;
+
     private float _replenishTimer;
 
     // ── Unity ─────────────────────────────────────────────────────────────────

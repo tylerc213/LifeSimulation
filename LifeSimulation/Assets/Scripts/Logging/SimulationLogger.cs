@@ -24,20 +24,13 @@ public class SimulationLogger : MonoBehaviour
     public string filepath;
 
     /// <summary>
-    /// Generates timestamped file to store the current simulation run.
-    /// Initializes logging on simulation start. 
+    /// Reserves log path before any LogManager.Start snapshot so the first line is never written to a null path.
     /// </summary>
-    void Start()
+    void Awake()
     {
         string timestamp = System.DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-
-        // Generate File Path
         filepath = Application.persistentDataPath + "/population_log_" + timestamp + ".json";
-
-        // Create file with header
         File.WriteAllText(filepath, "");
-
-        // Print file location to Unity Console
         Debug.Log("Log file created at: " + filepath);
     }
 

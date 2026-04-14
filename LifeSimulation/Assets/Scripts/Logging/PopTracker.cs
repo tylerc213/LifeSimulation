@@ -20,6 +20,10 @@ using UnityEngine;
 public class PopTracker : MonoBehaviour
 {
     [Header("Optional Sources")]
+    [Tooltip("Authoritative runtime counts (spawn/death). Prefer this over SimulationManager.population.")]
+    public EcosystemManager ecosystemManager;
+
+    [Tooltip("Only updated when placing via WorldEditor; used if EcosystemManager is missing.")]
     public SimulationManager simulationManager;
 
     public string plantPopulationKey = "Plant";
@@ -33,16 +37,22 @@ public class PopTracker : MonoBehaviour
     /// <returns>PopSnapshot containing population counts</returns>
     public PopSnapshot GetSnapshot(int tick)
     {
-        int plants = TryGetPopulation(plantPopulationKey);
-        int grazers = TryGetPopulation(grazerPopulationKey);
-        int predators = TryGetPopulation(predatorPopulationKey);
+        int plants;
+        int grazers;
+        int predators;
 
-        if (plants == 0 && grazers == 0 && predators == 0)
+        EcosystemManager eco = ecosystemManager != null ? ecosystemManager : EcosystemManager.Instance;
+        if (eco != null)
         {
-            // Temporary fallback when sim dictionary keys are not configured yet.
-            plants = Random.Range(50, 150);
-            grazers = Random.Range(10, 50);
-            predators = Random.Range(5, 20);
+            plants = eco.PlantCount;
+            grazers = eco.GrazerCount;
+            predators = eco.PredatorCount;
+        }
+        else
+        {
+            plants = TryGetPopulation(plantPopulationKey);
+            grazers = TryGetPopulation(grazerPopulationKey);
+            predators = TryGetPopulation(predatorPopulationKey);
         }
 
         return new PopSnapshot(tick, plants, grazers, predators);
