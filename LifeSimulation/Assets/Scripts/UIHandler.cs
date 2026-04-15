@@ -46,16 +46,20 @@ public class UIHandler : MonoBehaviour
         // Takes string data from seed field input to be used in map generation
         string seed = seedInput.text;
 
-        // Takes width and height from width and height field inputs to be used in map generation
-        int width = int.TryParse(widthInput.text, out int w) ? w : 250;
-        int height = int.TryParse(heightInput.text, out int h) ? h : 250;
-
         if (mapGenerator == null)
         {
             return;
         }
 
-        // Pass taken data to map generation script
+        int width = 250;
+        int height = 250;
+        if (SimulationSettingsStore.Instance != null)
+        {
+            width = SimulationSettingsStore.Instance.Current.terrain.mapWidth;
+            height = SimulationSettingsStore.Instance.Current.terrain.mapHeight;
+        }
+
+        // Pass taken data to map generation script (dimensions come from saved settings, not UI fields)
         mapGenerator.GenerateMap(seed, width, height);
         bool started = mapGenerator.IsMapReady && mapGenerator.HasSimulationStarted;
         UpdateSpawnButtonsVisibility(started);

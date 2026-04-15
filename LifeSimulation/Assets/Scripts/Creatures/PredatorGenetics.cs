@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // PredatorGenetics.cs
 // Reads a Genome and modifies Predator stats and behaviours.
 // Attach to every Predator prefab alongside the Predator script.
@@ -25,6 +25,9 @@ public class PredatorGenetics : MonoBehaviour
     public const float VenomDamagePerSec = 5f;
     public const float AmbushDamageBonus = 1.5f;
     public const float ApexMult = 5.0f;
+
+    public static float EffectiveVenomDamagePerSec => VenomDamagePerSec * ExpressionStrengthRuntime.PredatorRare;
+    public static float EffectiveAmbushDamageBonus => 1f + (AmbushDamageBonus - 1f) * ExpressionStrengthRuntime.PredatorRare;
 
     private SpriteRenderer _sr;
 
@@ -55,6 +58,11 @@ public class PredatorGenetics : MonoBehaviour
         if (Genome.IsExpressed(TraitType.PredatorThickSkinned))
             HealthMultiplier *= 1.2f;
 
+        float st = ExpressionStrengthRuntime.PredatorStat;
+        SpeedMultiplier = 1f + (SpeedMultiplier - 1f) * st;
+        DamageMultiplier = 1f + (DamageMultiplier - 1f) * st;
+        HealthMultiplier = 1f + (HealthMultiplier - 1f) * st;
+
         // ── Venomous (recessive) ───────────────────────────────────────────
         IsVenomous = Genome.IsExpressed(TraitType.Venomous);
         if (IsVenomous && _sr != null)
@@ -71,9 +79,10 @@ public class PredatorGenetics : MonoBehaviour
         if (Genome.IsExpressed(TraitType.ApexPredator) && PredatorPack.CanBecomeApex())
         {
             IsApexPredator = true;
-            SpeedMultiplier *= ApexMult;
-            HealthMultiplier *= ApexMult;
-            DamageMultiplier *= ApexMult;
+            float apexMult = ApexMult * ExpressionStrengthRuntime.PredatorApex;
+            SpeedMultiplier *= apexMult;
+            HealthMultiplier *= apexMult;
+            DamageMultiplier *= apexMult;
             if (_sr != null) _sr.color = new Color(0.9f, 0.1f, 0.1f);  // red tint
             PredatorPack.RegisterApex(this);
         }

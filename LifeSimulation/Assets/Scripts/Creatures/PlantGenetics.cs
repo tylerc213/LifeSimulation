@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // PlantGenetics.cs
 // Reads a Genome and modifies the Plant component accordingly.
 // Attach to every Plant prefab alongside the Plant script.
@@ -85,6 +85,20 @@ public class PlantGenetics : MonoBehaviour
 
         // ── Resilient (dominant) ───────────────────────────────────────────
         IsResilient = Genome.IsExpressed(TraitType.Resilient);
+
+        // Global expression strength (settings UI)
+        float p = ExpressionStrengthRuntime.PlantPrimary;
+        float s = ExpressionStrengthRuntime.PlantSecondary;
+        float d = ExpressionStrengthRuntime.PlantDefense;
+        NutritionMultiplier *= p;
+        if (Genome.IsExpressed(TraitType.Tasty))
+            TastyMultiplier = 1f + (TastyMultiplier - 1f) * s;
+        else
+            TastyMultiplier *= s;
+        if (Genome.IsExpressed(TraitType.Bitter))
+            BitterMultiplier *= s;
+        if (Genome.IsExpressed(TraitType.Poisonous))
+            PoisonDamagePerSec *= d;
     }
 
     /// <summary>

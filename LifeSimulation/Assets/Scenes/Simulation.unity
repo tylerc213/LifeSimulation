@@ -3893,12 +3893,14 @@ MonoBehaviour:
   squareTilemap: {fileID: 804650371}
   baseSquareTile: {fileID: 11400000, guid: bb7f0c917fe721a4bbb38afc33574d43, type: 2}
   obstaclePrefab: {fileID: 9063351392609377053, guid: 07c0dfee9ec618a4087e0786ed01f6ab, type: 3}
-  obstacleSpawnChance: 0.005
+  rockSpawnChance: 0.01
   obstacleMinCluster: 1
-  obstacleMaxCluster: 3
-  startPlants: 15
-  startGrazers: 10
-  startPredators: 5
+  obstacleMaxCluster: 2
+  perlinScale: 0.16
+  waterSpawnRate: 0.5
+  startPlants: 30
+  startGrazers: 15
+  startPredators: 4
 --- !u!4 &2144076347
 Transform:
   m_ObjectHideFlags: 0

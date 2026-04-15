@@ -28,6 +28,23 @@ public class LogManager : MonoBehaviour
     public MapGenerator2D mapGenerator;
     private bool hasLoggedInitialSnapshot;
 
+    void OnEnable()
+    {
+        MapGenerator2D.OnMapGenerated += OnSimulationMapReady;
+    }
+
+    void OnDisable()
+    {
+        MapGenerator2D.OnMapGenerated -= OnSimulationMapReady;
+    }
+
+    /// <summary> Reset tick tracking when a new map is generated (Generate Map), not on scene load. </summary>
+    void OnSimulationMapReady()
+    {
+        currentTick = 0;
+        hasLoggedInitialSnapshot = false;
+    }
+
     /// <summary>
     /// When simualtion starts --> log inital population
     /// </summary>

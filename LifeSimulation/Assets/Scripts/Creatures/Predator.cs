@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 
 /// <summary>
@@ -74,7 +74,7 @@ public class Predator : EntityBase
         if (_venomTarget != null && !_venomTarget.IsDead)
         {
             _venomTimer -= Time.deltaTime;
-            _venomTarget.TakeDamage(PredatorGenetics.VenomDamagePerSec * Time.deltaTime);
+            _venomTarget.TakeDamage(PredatorGenetics.EffectiveVenomDamagePerSec * Time.deltaTime);
             if (_venomTimer <= 0f) _venomTarget = null;
         }
 
@@ -185,7 +185,7 @@ public class Predator : EntityBase
             Grazer grazer = other.GetComponent<Grazer>();
             // If the grazer is not currently fleeing, it hasn't spotted us
             if (grazer != null)
-                damage *= PredatorGenetics.AmbushDamageBonus;
+                damage *= PredatorGenetics.EffectiveAmbushDamageBonus;
         }
 
         target.TakeDamage(damage);
