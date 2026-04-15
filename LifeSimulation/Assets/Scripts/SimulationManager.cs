@@ -57,6 +57,8 @@ public class SimulationManager : MonoBehaviour
 
     public bool IsUserPaused => isUserPaused;
 
+    public bool IsHalted => isHalted;
+
     void RefreshTimeScale()
     {
         if (isHalted)

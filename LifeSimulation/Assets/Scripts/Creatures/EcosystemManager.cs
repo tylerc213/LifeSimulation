@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 
 /// <summary>
@@ -60,6 +60,12 @@ public class EcosystemManager : MonoBehaviour
         Instance = this;
     }
 
+    void Start()
+    {
+        // Store may have run ApplyAll before this component's Awake; re-apply replenish/caps from JSON.
+        SimulationSettingsStore.Instance?.ReapplyEcosystemOnly();
+    }
+
     void OnEnable()
     {
         MapGenerator2D.OnMapGenerated += ResetReplenishTimersAfterNewMap;
@@ -83,7 +89,13 @@ public class EcosystemManager : MonoBehaviour
         if (!MapGenerator2D.IsSimulationRunActive)
             return;
 
-        float dt = Time.deltaTime;
+        // While the editor pause button holds timeScale at 0, scaled delta is 0 — use unscaled time so
+        // "Replenish interval (s)" is real seconds. Also skip while user-paused so spawns don't run in the background.
+        if (SimulationManager.Instance != null &&
+            (SimulationManager.Instance.IsUserPaused || SimulationManager.Instance.IsHalted))
+            return;
+
+        float dt = Time.unscaledDeltaTime;
 
         if (autoReplenishPlants)
         {

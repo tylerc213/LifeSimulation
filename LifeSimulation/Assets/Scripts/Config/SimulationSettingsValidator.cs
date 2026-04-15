@@ -70,7 +70,39 @@ public static class SimulationSettingsValidator
             s.terrain.perlinScale = Mathf.Clamp(s.terrain.perlinScale, 0.02f, 0.3f);
         }
 
+        ClampPopulationAndReplenish(s);
+
         ClampExpression(s);
+    }
+
+    static void ClampPopulationAndReplenish(SimulationSettings s)
+    {
+        if (s.plant != null)
+        {
+            s.plant.startingPopulation = Mathf.Clamp(s.plant.startingPopulation, 0, 2000);
+            s.plant.maxPopulation = Mathf.Clamp(s.plant.maxPopulation, 1, 5000);
+            s.plant.replenishIntervalSeconds = Mathf.Clamp(s.plant.replenishIntervalSeconds, 0.25f, 300f);
+            s.plant.replenishAmount = Mathf.Clamp(s.plant.replenishAmount, 0, 500);
+        }
+
+        if (s.grazer != null)
+        {
+            s.grazer.startingPopulation = Mathf.Clamp(s.grazer.startingPopulation, 0, 2000);
+            s.grazer.maxPopulation = Mathf.Clamp(s.grazer.maxPopulation, 1, 3000);
+            s.grazer.replenishIntervalSeconds = Mathf.Clamp(s.grazer.replenishIntervalSeconds, 0.25f, 300f);
+            s.grazer.replenishAmount = Mathf.Clamp(s.grazer.replenishAmount, 0, 200);
+        }
+
+        if (s.predator != null)
+        {
+            s.predator.startingPopulation = Mathf.Clamp(s.predator.startingPopulation, 0, 1000);
+            s.predator.maxPopulation = Mathf.Clamp(s.predator.maxPopulation, 1, 2000);
+            s.predator.replenishIntervalSeconds = Mathf.Clamp(s.predator.replenishIntervalSeconds, 0.25f, 300f);
+            s.predator.replenishAmount = Mathf.Clamp(s.predator.replenishAmount, 0, 200);
+            // Saves from before the replenish toggle was visible: sliders were set but the flag stayed false.
+            if (!s.predator.replenishEnabled && s.predator.replenishAmount >= 50)
+                s.predator.replenishEnabled = true;
+        }
     }
 
     static void ClampExpression(SimulationSettings s)

@@ -165,6 +165,12 @@ public class SimulationSettingsStore : MonoBehaviour
         eco.ConfigureFromSettings(Current.plant, Current.grazer, Current.predator);
     }
 
+    /// <summary> Call after EcosystemManager has finished Awake — fixes load order where ApplyAll ran before Instance existed. </summary>
+    public void ReapplyEcosystemOnly()
+    {
+        ApplyEcosystem();
+    }
+
     /// <summary> Call after a slider changes a subset of Current (mutate Current then call). </summary>
     public void CommitFromCurrent()
     {

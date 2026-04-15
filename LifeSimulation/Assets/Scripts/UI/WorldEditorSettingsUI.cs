@@ -97,15 +97,15 @@ public class WorldEditorSettingsUI : MonoBehaviour
 
     void BuildPlant(Transform parent, TMP_FontAsset font)
     {
-        AddSlider(parent, font, "Starting population", 0f, 60f, true,
+        AddSlider(parent, font, "Starting population", 0f, 2000f, true,
             s => s.plant.startingPopulation, (s, v) => s.plant.startingPopulation = Mathf.RoundToInt(v));
-        AddSlider(parent, font, "Max population", 10f, 90f, true,
+        AddSlider(parent, font, "Max population", 0f, 5000f, true,
             s => s.plant.maxPopulation, (s, v) => s.plant.maxPopulation = Mathf.RoundToInt(v));
         AddToggle(parent, font, "Replenish enabled",
             s => s.plant.replenishEnabled, (s, v) => s.plant.replenishEnabled = v);
-        AddSlider(parent, font, "Replenish interval (s)", 1f, 30f, false,
+        AddSlider(parent, font, "Replenish interval (s)", 0.25f, 120f, false,
             s => s.plant.replenishIntervalSeconds, (s, v) => s.plant.replenishIntervalSeconds = v);
-        AddSlider(parent, font, "Replenish amount", 0f, 20f, true,
+        AddSlider(parent, font, "Replenish amount (per tick)", 0f, 500f, true,
             s => s.plant.replenishAmount, (s, v) => s.plant.replenishAmount = Mathf.RoundToInt(v));
         AddSlider(parent, font, "Expression: primary / leaf", 0f, 3f, false,
             s => s.plant.expression.primaryStats, (s, v) => s.plant.expression.primaryStats = v);
@@ -117,15 +117,15 @@ public class WorldEditorSettingsUI : MonoBehaviour
 
     void BuildGrazer(Transform parent, TMP_FontAsset font)
     {
-        AddSlider(parent, font, "Starting population", 0f, 40f, true,
+        AddSlider(parent, font, "Starting population", 0f, 2000f, true,
             s => s.grazer.startingPopulation, (s, v) => s.grazer.startingPopulation = Mathf.RoundToInt(v));
-        AddSlider(parent, font, "Max population", 10f, 50f, true,
+        AddSlider(parent, font, "Max population", 0f, 3000f, true,
             s => s.grazer.maxPopulation, (s, v) => s.grazer.maxPopulation = Mathf.RoundToInt(v));
         AddToggle(parent, font, "Replenish enabled",
             s => s.grazer.replenishEnabled, (s, v) => s.grazer.replenishEnabled = v);
-        AddSlider(parent, font, "Replenish interval (s)", 0.5f, 30f, false,
+        AddSlider(parent, font, "Replenish interval (s)", 0.25f, 120f, false,
             s => s.grazer.replenishIntervalSeconds, (s, v) => s.grazer.replenishIntervalSeconds = v);
-        AddSlider(parent, font, "Replenish amount", 0f, 20f, true,
+        AddSlider(parent, font, "Replenish amount (per tick)", 0f, 200f, true,
             s => s.grazer.replenishAmount, (s, v) => s.grazer.replenishAmount = Mathf.RoundToInt(v));
         AddSlider(parent, font, "Expression: stat traits", 0f, 3f, false,
             s => s.grazer.expression.statTraits, (s, v) => s.grazer.expression.statTraits = v);
@@ -137,15 +137,15 @@ public class WorldEditorSettingsUI : MonoBehaviour
 
     void BuildPredator(Transform parent, TMP_FontAsset font)
     {
-        AddSlider(parent, font, "Starting population", 0f, 12f, true,
+        AddSlider(parent, font, "Starting population", 0f, 1000f, true,
             s => s.predator.startingPopulation, (s, v) => s.predator.startingPopulation = Mathf.RoundToInt(v));
-        AddSlider(parent, font, "Max population", 2f, 18f, true,
+        AddSlider(parent, font, "Max population", 0f, 2000f, true,
             s => s.predator.maxPopulation, (s, v) => s.predator.maxPopulation = Mathf.RoundToInt(v));
         AddToggle(parent, font, "Replenish enabled",
             s => s.predator.replenishEnabled, (s, v) => s.predator.replenishEnabled = v);
-        AddSlider(parent, font, "Replenish interval (s)", 0.5f, 60f, false,
+        AddSlider(parent, font, "Replenish interval (s)", 0.25f, 120f, false,
             s => s.predator.replenishIntervalSeconds, (s, v) => s.predator.replenishIntervalSeconds = v);
-        AddSlider(parent, font, "Replenish amount", 0f, 20f, true,
+        AddSlider(parent, font, "Replenish amount (per tick)", 0f, 200f, true,
             s => s.predator.replenishAmount, (s, v) => s.predator.replenishAmount = Mathf.RoundToInt(v));
         AddSlider(parent, font, "Expression: stat traits", 0f, 3f, false,
             s => s.predator.expression.statTraits, (s, v) => s.predator.expression.statTraits = v);
@@ -225,10 +225,17 @@ public class WorldEditorSettingsUI : MonoBehaviour
     void AddToggle(Transform parent, TMP_FontAsset font, string label,
         Func<SimulationSettings, bool> get, Action<SimulationSettings, bool> set)
     {
+        const float togglePx = 24f;
+
         GameObject row = new GameObject("ToggleRow", typeof(RectTransform), typeof(HorizontalLayoutGroup));
         row.transform.SetParent(parent, false);
         HorizontalLayoutGroup h = row.GetComponent<HorizontalLayoutGroup>();
         h.spacing = 8f;
+        h.childAlignment = TextAnchor.MiddleLeft;
+        h.childForceExpandHeight = true;
+        LayoutElement rowLe = row.AddComponent<LayoutElement>();
+        rowLe.minHeight = 28f;
+        rowLe.preferredHeight = 28f;
 
         GameObject labGo = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
         labGo.transform.SetParent(row.transform, false);
@@ -239,19 +246,48 @@ public class WorldEditorSettingsUI : MonoBehaviour
         if (font != null)
             lab.font = font;
         LayoutElement leL = labGo.AddComponent<LayoutElement>();
-        leL.preferredWidth = 200f;
+        leL.preferredWidth = 148f;
+        leL.flexibleWidth = 1f;
 
+        // Root must have explicit size or VerticalLayoutGroup collapses the control to zero width (invisible toggle).
         GameObject tRoot = new GameObject("Toggle", typeof(RectTransform));
         tRoot.transform.SetParent(row.transform, false);
+        RectTransform tRt = tRoot.GetComponent<RectTransform>();
+        tRt.sizeDelta = new Vector2(togglePx, togglePx);
+        LayoutElement tLe = tRoot.AddComponent<LayoutElement>();
+        tLe.preferredWidth = togglePx;
+        tLe.preferredHeight = togglePx;
+        tLe.minWidth = togglePx;
+        tLe.minHeight = togglePx;
+
         Toggle t = tRoot.AddComponent<Toggle>();
+        t.transition = Selectable.Transition.ColorTint;
+        ColorBlock colors = t.colors;
+        colors.highlightedColor = Color.white;
+        colors.pressedColor = new Color(0.85f, 0.85f, 0.85f);
+        t.colors = colors;
+
         GameObject bg = new GameObject("Background", typeof(RectTransform), typeof(Image));
         bg.transform.SetParent(tRoot.transform, false);
         RectTransform bgr = bg.GetComponent<RectTransform>();
-        bgr.sizeDelta = new Vector2(22f, 22f);
+        bgr.anchorMin = Vector2.zero;
+        bgr.anchorMax = Vector2.one;
+        bgr.offsetMin = Vector2.zero;
+        bgr.offsetMax = Vector2.zero;
         Image bgImg = bg.GetComponent<Image>();
-        bgImg.color = new Color(1f, 1f, 1f, 0.9f);
-        t.graphic = bgImg;
+        bgImg.color = new Color(1f, 1f, 1f, 0.95f);
         t.targetGraphic = bgImg;
+
+        GameObject mark = new GameObject("Checkmark", typeof(RectTransform), typeof(Image));
+        mark.transform.SetParent(bg.transform, false);
+        RectTransform mr = mark.GetComponent<RectTransform>();
+        mr.anchorMin = new Vector2(0.1f, 0.1f);
+        mr.anchorMax = new Vector2(0.9f, 0.9f);
+        mr.offsetMin = Vector2.zero;
+        mr.offsetMax = Vector2.zero;
+        Image markImg = mark.GetComponent<Image>();
+        markImg.color = new Color(0.15f, 0.65f, 0.55f, 1f);
+        t.graphic = markImg;
 
         void RefreshT()
         {
