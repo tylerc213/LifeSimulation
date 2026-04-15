@@ -89,10 +89,6 @@ public class WorldEditorSettingsUI : MonoBehaviour
             s => s.terrain.obstacleMinCluster, (s, v) => s.terrain.obstacleMinCluster = Mathf.RoundToInt(v));
         AddSlider(parent, font, "Obstacle cluster max", 1f, 6f, true,
             s => s.terrain.obstacleMaxCluster, (s, v) => s.terrain.obstacleMaxCluster = Mathf.RoundToInt(v));
-        AddSlider(parent, font, "Map width (tiles)", 20f, 500f, true,
-            s => s.terrain.mapWidth, (s, v) => s.terrain.mapWidth = Mathf.RoundToInt(v));
-        AddSlider(parent, font, "Map height (tiles)", 20f, 500f, true,
-            s => s.terrain.mapHeight, (s, v) => s.terrain.mapHeight = Mathf.RoundToInt(v));
         AddSlider(parent, font, "Terrain feature scale", 0.02f, 0.3f, false,
             s => s.terrain.perlinScale, (s, v) => s.terrain.perlinScale = v);
         AddSlider(parent, font, "Water spawn rate", 0f, 1f, false,
