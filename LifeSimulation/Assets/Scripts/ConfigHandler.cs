@@ -49,7 +49,11 @@ public class ConfigHandler : MonoBehaviour
         if (!TryGetExportJsonPath(out string path))
             return;
 
-        File.WriteAllText(path, BlankExportJson());
+        string json = SimulationSettingsStore.Instance != null
+            ? JsonUtility.ToJson(SimulationSettingsStore.Instance.Current, true)
+            : JsonUtility.ToJson(SimulationSettings.CreateDefaults(), true);
+
+        File.WriteAllText(path, json);
     }
 
     /// <summary> returns to main menu scene </summary>
@@ -93,16 +97,33 @@ public class ConfigHandler : MonoBehaviour
 
     static string BlankExportJson()
     {
-        return "{}";
+        return JsonUtility.ToJson(SimulationSettings.CreateDefaults(), true);
     }
 
-    /// <summary> future: enforce JSON schema </summary>
     void ValidateConfigurationSchema(string json)
     {
+        if (!SimulationSettingsStore.TryDeserializeAndValidate(json, out _, out string error))
+            Debug.LogWarning("Config validation failed: " + error);
     }
 
-    /// <summary> future: push imported values into sim data sources </summary>
     void ApplyConfigurationToDataSources(string json)
     {
+        if (!SimulationSettingsStore.TryDeserializeAndValidate(json, out SimulationSettings settings, out string error))
+        {
+            Debug.LogWarning("Config import failed: " + error);
+            return;
+        }
+
+        try
+        {
+            File.WriteAllText(GetDefaultConfigPath(), json);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning("Could not persist imported config: " + e.Message);
+        }
+
+        if (SimulationSettingsStore.Instance != null)
+            SimulationSettingsStore.Instance.ReplaceAndApply(settings, saveToDisk: false);
     }
 }

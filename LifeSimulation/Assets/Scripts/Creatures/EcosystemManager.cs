@@ -27,6 +27,16 @@ public class EcosystemManager : MonoBehaviour
     [SerializeField] private float plantReplenishInterval = 5f;
     [SerializeField] private int plantReplenishAmount = 3;
 
+    [Header("Auto-replenish Grazers")]
+    [SerializeField] private bool autoReplenishGrazers = false;
+    [SerializeField] private float grazerReplenishInterval = 8f;
+    [SerializeField] private int grazerReplenishAmount = 1;
+
+    [Header("Auto-replenish Predators")]
+    [SerializeField] private bool autoReplenishPredators = false;
+    [SerializeField] private float predatorReplenishInterval = 15f;
+    [SerializeField] private int predatorReplenishAmount = 1;
+
     // Live counters — incremented immediately on spawn, decremented on death.
     // This avoids the one-frame lag of FindGameObjectsWithTag, which caused
     // multiple entities to spawn before Unity registered the previous ones.
@@ -39,7 +49,9 @@ public class EcosystemManager : MonoBehaviour
     public int GrazerCount => _grazerCount;
     public int PredatorCount => _predatorCount;
 
-    private float _replenishTimer;
+    private float _plantReplenishTimer;
+    private float _grazerReplenishTimer;
+    private float _predatorReplenishTimer;
 
     // ── Unity ─────────────────────────────────────────────────────────────────
     private void Awake()
@@ -48,16 +60,83 @@ public class EcosystemManager : MonoBehaviour
         Instance = this;
     }
 
+    void OnEnable()
+    {
+        MapGenerator2D.OnMapGenerated += ResetReplenishTimersAfterNewMap;
+    }
+
+    void OnDisable()
+    {
+        MapGenerator2D.OnMapGenerated -= ResetReplenishTimersAfterNewMap;
+    }
+
+    void ResetReplenishTimersAfterNewMap()
+    {
+        _plantReplenishTimer = 0f;
+        _grazerReplenishTimer = 0f;
+        _predatorReplenishTimer = 0f;
+    }
+
     private void Update()
     {
-        if (!autoReplenishPlants) return;
-        _replenishTimer += Time.deltaTime;
-        if (_replenishTimer >= plantReplenishInterval)
+        // Auto-replenish must not run before Generate Map — otherwise plants spawn in empty space.
+        if (!MapGenerator2D.IsSimulationRunActive)
+            return;
+
+        float dt = Time.deltaTime;
+
+        if (autoReplenishPlants)
         {
-            _replenishTimer = 0f;
-            for (int i = 0; i < plantReplenishAmount; i++)
-                SpawnPlant(RandomPosition());
+            _plantReplenishTimer += dt;
+            if (_plantReplenishTimer >= plantReplenishInterval)
+            {
+                _plantReplenishTimer = 0f;
+                for (int i = 0; i < plantReplenishAmount; i++)
+                    SpawnPlant(RandomPosition());
+            }
         }
+
+        if (autoReplenishGrazers)
+        {
+            _grazerReplenishTimer += dt;
+            if (_grazerReplenishTimer >= grazerReplenishInterval)
+            {
+                _grazerReplenishTimer = 0f;
+                for (int i = 0; i < grazerReplenishAmount; i++)
+                    SpawnGrazer(RandomPosition());
+            }
+        }
+
+        if (autoReplenishPredators)
+        {
+            _predatorReplenishTimer += dt;
+            if (_predatorReplenishTimer >= predatorReplenishInterval)
+            {
+                _predatorReplenishTimer = 0f;
+                for (int i = 0; i < predatorReplenishAmount; i++)
+                    SpawnPredator(RandomPosition());
+            }
+        }
+    }
+
+    /// <summary> Called by SimulationSettingsStore when sliders or import change values. </summary>
+    public void ConfigureFromSettings(PlantSettingsBlock plant, GrazerSettingsBlock grazer, PredatorSettingsBlock predator)
+    {
+        maxPlants = plant.maxPopulation;
+        maxGrazers = grazer.maxPopulation;
+        maxPredators = predator.maxPopulation;
+
+        autoReplenishPlants = plant.replenishEnabled;
+        plantReplenishInterval = plant.replenishIntervalSeconds;
+        plantReplenishAmount = plant.replenishAmount;
+
+        autoReplenishGrazers = grazer.replenishEnabled;
+        grazerReplenishInterval = grazer.replenishIntervalSeconds;
+        grazerReplenishAmount = grazer.replenishAmount;
+
+        autoReplenishPredators = predator.replenishEnabled;
+        predatorReplenishInterval = predator.replenishIntervalSeconds;
+        predatorReplenishAmount = predator.replenishAmount;
     }
 
     // ── Public Spawn Methods ──────────────────────────────────────────────────
@@ -109,6 +188,9 @@ public class EcosystemManager : MonoBehaviour
 
     private void DoSpawnPlant(Vector2 position)
     {
+        // Block all entity creation until Generate Map has finished (defense in depth — replenishment/spread also rely on this).
+        if (!MapGenerator2D.IsSimulationRunActive)
+            return;
         if (plantPrefab == null) return;
         GameObject go = Instantiate(plantPrefab, position, Quaternion.identity);
         _plantCount++;
@@ -119,6 +201,8 @@ public class EcosystemManager : MonoBehaviour
 
     private void DoSpawnGrazer(Vector2 spawnPos, Genome genome)
     {
+        if (!MapGenerator2D.IsSimulationRunActive)
+            return;
         if (grazerprefab == null) return;
         if (BoundaryManager.Instance != null)
             spawnPos = BoundaryManager.Instance.Clamp(spawnPos);
@@ -132,6 +216,8 @@ public class EcosystemManager : MonoBehaviour
 
     private void DoSpawnPredator(Vector2 spawnPos, Genome genome)
     {
+        if (!MapGenerator2D.IsSimulationRunActive)
+            return;
         if (predatorPrefab == null) return;
         if (BoundaryManager.Instance != null)
             spawnPos = BoundaryManager.Instance.Clamp(spawnPos);

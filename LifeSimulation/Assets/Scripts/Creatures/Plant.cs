@@ -56,6 +56,8 @@ public class Plant : MonoBehaviour
 
     private void TrySpread()
     {
+        if (!MapGenerator2D.IsSimulationRunActive)
+            return;
         if (!IsFullyGrown) return;
 
         _spreadTimer += Time.deltaTime;

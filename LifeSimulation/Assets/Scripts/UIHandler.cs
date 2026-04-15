@@ -55,6 +55,13 @@ public class UIHandler : MonoBehaviour
             return;
         }
 
+        if (SimulationSettingsStore.Instance != null)
+        {
+            SimulationSettingsStore.Instance.Current.terrain.mapWidth = width;
+            SimulationSettingsStore.Instance.Current.terrain.mapHeight = height;
+            SimulationSettingsStore.Instance.SaveToDisk();
+        }
+
         // Pass taken data to map generation script
         mapGenerator.GenerateMap(seed, width, height);
         bool started = mapGenerator.IsMapReady && mapGenerator.HasSimulationStarted;

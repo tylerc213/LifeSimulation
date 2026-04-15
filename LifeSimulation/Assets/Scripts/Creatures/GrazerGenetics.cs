@@ -29,6 +29,9 @@ public class GrazerGenetics : MonoBehaviour
     public const float SpikyReflect = 0.50f;
     public const float HerdLeaderMult = 2.0f;
 
+    public static float EffectiveCamouflageChance => CamouflageChance * ExpressionStrengthRuntime.GrazerRare;
+    public static float EffectiveSpikyReflect => SpikyReflect * ExpressionStrengthRuntime.GrazerRare;
+
     private SpriteRenderer _sr;
 
     private void Awake()
@@ -58,6 +61,11 @@ public class GrazerGenetics : MonoBehaviour
         if (Genome.IsExpressed(TraitType.GrazerThickSkinned))
             HealthMultiplier *= 1.2f;
 
+        float st = ExpressionStrengthRuntime.GrazerStat;
+        SpeedMultiplier = 1f + (SpeedMultiplier - 1f) * st;
+        DamageMultiplier = 1f + (DamageMultiplier - 1f) * st;
+        HealthMultiplier = 1f + (HealthMultiplier - 1f) * st;
+
         // ── Camouflage (recessive) ─────────────────────────────────────────
         HasCamouflage = Genome.IsExpressed(TraitType.Camouflage);
 
@@ -74,9 +82,10 @@ public class GrazerGenetics : MonoBehaviour
         if (Genome.IsExpressed(TraitType.HerdLeader) && GrazerPack.TryBecomeLeader(this))
         {
             IsHerdLeader = true;
-            SpeedMultiplier *= HerdLeaderMult;
-            HealthMultiplier *= HerdLeaderMult;
-            DamageMultiplier *= HerdLeaderMult;
+            float packMult = HerdLeaderMult * ExpressionStrengthRuntime.GrazerPack;
+            SpeedMultiplier *= packMult;
+            HealthMultiplier *= packMult;
+            DamageMultiplier *= packMult;
             if (_sr != null) _sr.color = new Color(1f, 0.85f, 0.1f);  // gold tint
         }
 

@@ -104,7 +104,7 @@ public class Grazer : EntityBase
             foreach (var c in nearby)
             {
                 if (c.gameObject == gameObject) continue;
-                if (UnityEngine.Random.value < GrazerGenetics.CamouflageChance) { camouflaged = true; break; }
+                if (UnityEngine.Random.value < GrazerGenetics.EffectiveCamouflageChance) { camouflaged = true; break; }
             }
         }
 
@@ -239,7 +239,7 @@ public class Grazer : EntityBase
             foreach (var h in hits)
             {
                 if (!h.CompareTag("Predator")) continue;
-                h.GetComponent<EntityBase>()?.TakeDamage(amount * GrazerGenetics.SpikyReflect);
+                h.GetComponent<EntityBase>()?.TakeDamage(amount * GrazerGenetics.EffectiveSpikyReflect);
                 break;
             }
         }

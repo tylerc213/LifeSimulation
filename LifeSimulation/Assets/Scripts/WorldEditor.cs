@@ -41,6 +41,12 @@ public class WorldEditor : MonoBehaviour
         {
             mapGenerator = GetComponent<MapGenerator2D>();
         }
+
+        if (FindFirstObjectByType<SimulationSceneBootstrap>() == null)
+        {
+            GameObject boot = new GameObject("SimulationSceneBootstrap");
+            boot.AddComponent<SimulationSceneBootstrap>();
+        }
     }
 
     private bool CanSpawnOnMap()
