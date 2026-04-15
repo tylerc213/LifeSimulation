@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // PlantGenetics.cs
 // Reads a Genome and modifies the Plant component accordingly.
 // Attach to every Plant prefab alongside the Plant script.

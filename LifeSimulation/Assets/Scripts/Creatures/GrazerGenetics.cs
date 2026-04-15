@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // GrazerGenetics.cs
 // Reads a Genome and modifies Grazer stats and behaviours.
 // Attach to every Grazer prefab alongside the Grazer script.

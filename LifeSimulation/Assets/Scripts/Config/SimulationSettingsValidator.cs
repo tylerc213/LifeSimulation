@@ -39,7 +39,7 @@ public static class SimulationSettingsValidator
     static void MigrateTerrainV1(TerrainSettingsData t)
     {
         if (t.rockSpawnRate <= 0f && t.obstacleSpawnChance > 0f)
-            t.rockSpawnRate = Mathf.Clamp(t.obstacleSpawnChance, 0.0005f, 0.015f);
+            t.rockSpawnRate = Mathf.Clamp(t.obstacleSpawnChance, 0f, 0.03f);
 
         if (t.waterSpawnRate <= 0f && t.waterThreshold > 0f)
         {
@@ -47,8 +47,8 @@ public static class SimulationSettingsValidator
             t.waterSpawnRate = Mathf.Clamp01(Mathf.InverseLerp(0.9f, 0.5f, t.waterThreshold));
         }
 
-        if (t.rockSpawnRate <= 0f)
-            t.rockSpawnRate = 0.004f;
+        if (t.rockSpawnRate < 0f)
+            t.rockSpawnRate = 0.01f;
         if (t.waterSpawnRate <= 0f)
             t.waterSpawnRate = 0.5f;
     }
@@ -61,7 +61,7 @@ public static class SimulationSettingsValidator
         if (s.terrain != null)
         {
             MigrateTerrainV1(s.terrain);
-            s.terrain.rockSpawnRate = Mathf.Clamp(s.terrain.rockSpawnRate, 0.0005f, 0.015f);
+            s.terrain.rockSpawnRate = Mathf.Clamp(s.terrain.rockSpawnRate, 0f, 0.03f);
             s.terrain.waterSpawnRate = Mathf.Clamp01(s.terrain.waterSpawnRate);
             s.terrain.obstacleMinCluster = Mathf.Max(1, s.terrain.obstacleMinCluster);
             s.terrain.obstacleMaxCluster = Mathf.Max(s.terrain.obstacleMinCluster, s.terrain.obstacleMaxCluster);

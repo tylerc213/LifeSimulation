@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // PredatorGenetics.cs
 // Reads a Genome and modifies Predator stats and behaviours.
 // Attach to every Predator prefab alongside the Predator script.

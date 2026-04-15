@@ -81,9 +81,9 @@ public class WorldEditorSettingsUI : MonoBehaviour
 
     void BuildGame(Transform parent, TMP_FontAsset font)
     {
-        AddSlider(parent, font, "Simulation speed", 0f, 4f, false,
+        AddSlider(parent, font, "Simulation speed", 0f, 10f, false,
             s => s.game.simulationSpeed, (s, v) => s.game.simulationSpeed = v);
-        AddSlider(parent, font, "Rock spawn rate", 0.0005f, 0.015f, false,
+        AddSlider(parent, font, "Rock spawn rate", 0f, 0.03f, false,
             s => s.terrain.rockSpawnRate, (s, v) => s.terrain.rockSpawnRate = v);
         AddSlider(parent, font, "Obstacle cluster min", 1f, 4f, true,
             s => s.terrain.obstacleMinCluster, (s, v) => s.terrain.obstacleMinCluster = Mathf.RoundToInt(v));

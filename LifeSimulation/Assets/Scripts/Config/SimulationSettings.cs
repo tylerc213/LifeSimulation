@@ -40,7 +40,7 @@ public class TerrainSettingsData
     public float waterThreshold;
 
     /// <summary> Probability each tile starts a rock cluster attempt (kept low — large maps). </summary>
-    [Range(0.0005f, 0.015f)] public float rockSpawnRate = 0.004f;
+    [Range(0f, 0.03f)] public float rockSpawnRate = 0.01f;
 
     /// <summary> 0 = least water, 1 = most water (drives Perlin threshold). </summary>
     [Range(0f, 1f)] public float waterSpawnRate = 0.5f;

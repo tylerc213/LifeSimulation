@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 
 /// <summary>
-/// Plant — static organism. Grows to full size over time, then can spread seeds.
+/// Plant â€” static organism. Grows to full size over time, then can spread seeds.
 /// When a Grazer overlaps it, the Grazer calls Consume() which destroys the plant.
 ///
 /// Attach to a 2D sprite GameObject.  Tag it "Plant".
@@ -23,7 +23,7 @@ public class Plant : MonoBehaviour
     [Header("Nutrition")]
     [SerializeField] private float nutritionValue = 40f;    // hunger restored when eaten
 
-    // Genetics component — optional, applied at spawn
+    // Genetics component â€” optional, applied at spawn
     private PlantGenetics _genetics;
 
     public float NutritionValue => nutritionValue * (_genetics != null ? _genetics.NutritionMultiplier : 1f);

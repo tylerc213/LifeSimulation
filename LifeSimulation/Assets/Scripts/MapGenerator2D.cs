@@ -35,9 +35,9 @@ public class MapGenerator2D : MonoBehaviour
     [Header("Obstacle Generation (rocks)")]
     public GameObject obstaclePrefab;
     [Tooltip("Probability per tile of attempting a rock cluster. Keep low on large maps.")]
-    [Range(0.0005f, 0.015f)]
+    [Range(0f, 0.03f)]
     [FormerlySerializedAs("obstacleSpawnChance")]
-    public float rockSpawnChance = 0.004f;
+    public float rockSpawnChance = 0.01f;
     public int obstacleMinCluster = 1;
     public int obstacleMaxCluster = 2;
 
@@ -143,6 +143,9 @@ public class MapGenerator2D : MonoBehaviour
 
     private void SpawnObstacles()
     {
+        if (rockSpawnChance <= 0f)
+            return;
+
         // Work on a shuffled copy so clusters land in random positions
         List<Vector3> shuffled = new List<Vector3>(_openTiles);
         Shuffle(shuffled);

@@ -3893,7 +3893,7 @@ MonoBehaviour:
   squareTilemap: {fileID: 804650371}
   baseSquareTile: {fileID: 11400000, guid: bb7f0c917fe721a4bbb38afc33574d43, type: 2}
   obstaclePrefab: {fileID: 9063351392609377053, guid: 07c0dfee9ec618a4087e0786ed01f6ab, type: 3}
-  rockSpawnChance: 0.004
+  rockSpawnChance: 0.01
   obstacleMinCluster: 1
   obstacleMaxCluster: 2
   perlinScale: 0.16
