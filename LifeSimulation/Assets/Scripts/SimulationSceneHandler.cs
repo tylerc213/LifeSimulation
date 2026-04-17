@@ -107,11 +107,12 @@ public class SimulationSceneHandler : MonoBehaviour
             return;
         }
 
-        Transform existing = editorPanel.transform.Find("QuitToSummaryButton");
+        Transform layoutRoot = WorldEditorShell.GetEditorPanelLayoutRoot(editorPanel.transform);
+        Transform existing = layoutRoot.Find("QuitToSummaryButton");
         if (existing == null)
-        {
-            existing = editorPanel.transform.Find("Quit");
-        }
+            existing = layoutRoot.Find("Quit");
+        if (existing == null)
+            existing = WorldEditorShell.FindDeepChild(editorPanel.transform, "Quit");
 
         if (existing != null)
         {
@@ -123,11 +124,12 @@ public class SimulationSceneHandler : MonoBehaviour
                 existingButton.onClick.AddListener(Quit);
             }
 
+            WorldEditorShell.ApplyStripStyleToEditorPanelToolbarButtons();
             return;
         }
 
         GameObject buttonObject = new GameObject("Quit", typeof(RectTransform), typeof(Image), typeof(Button));
-        buttonObject.transform.SetParent(editorPanel.transform, false);
+        buttonObject.transform.SetParent(layoutRoot, false);
         RectTransform rect = buttonObject.GetComponent<RectTransform>();
         rect.sizeDelta = new Vector2(160f, 30f);
         rect.anchorMin = new Vector2(0f, 0f);
@@ -153,15 +155,7 @@ public class SimulationSceneHandler : MonoBehaviour
         label.alignment = TextAlignmentOptions.Center;
         CopyTmpFontFromScene(label);
 
-        ApplyQuitToolbarStyle(buttonObject.transform);
-    }
-
-    static void ApplyQuitToolbarStyle(Transform quitRoot)
-    {
-        LifeSimUIButtonStyle.ApplyStripButton(quitRoot.gameObject, LifeSimUI.Theme, false);
-        TextMeshProUGUI label = quitRoot.GetComponentInChildren<TextMeshProUGUI>(true);
-        if (label != null)
-            CopyTmpFontFromScene(label);
+        WorldEditorShell.ApplyStripStyleToEditorPanelToolbarButtons();
     }
 
     static void CopyTmpFontFromScene(TextMeshProUGUI target)

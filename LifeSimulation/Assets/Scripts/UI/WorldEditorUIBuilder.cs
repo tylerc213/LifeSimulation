@@ -17,10 +17,22 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary> Builds world editor UI under the Simulation scene Canvas at runtime. </summary>
-public static class WorldEditorUIBuilder
+public static class WorldEditorShell
 {
+    /// <summary> Optional scene child of <c>EditorPanel</c> that holds all collapsible rows. </summary>
+    public const string EditorPanelContentName = "EditorPanelContent";
+
     /// <summary> Shared body label color; prefer <see cref="LifeSimUI.Theme"/>. </summary>
     public static Color TextDimPublic => LifeSimUI.Theme.bodyText;
+
+    /// <summary> Layout root for rows added at runtime (pause, settings grid); falls back to the panel. </summary>
+    public static Transform GetEditorPanelLayoutRoot(Transform editorPanel)
+    {
+        if (editorPanel == null)
+            return null;
+        Transform content = editorPanel.Find(EditorPanelContentName);
+        return content != null ? content : editorPanel;
+    }
 
     public static void EnsureBuilt(Canvas canvas)
     {
@@ -32,18 +44,81 @@ public static class WorldEditorUIBuilder
 
         Transform editorPanel = canvas.transform.Find("EditorPanel");
         if (editorPanel == null)
+            editorPanel = FindDeepChild(canvas.transform, "EditorPanel");
+        if (editorPanel == null)
             return;
 
-        if (editorPanel.Find("PauseSimulationButton") == null)
-            BuildPauseButton(editorPanel, font, theme);
+        Transform layoutRoot = GetEditorPanelLayoutRoot(editorPanel);
 
-        if (editorPanel.Find("SettingsButtonsGrid") == null)
-            BuildSettingsButtons(editorPanel, font, theme);
+        if (layoutRoot.Find("PauseSimulationButton") == null)
+            BuildPauseButton(layoutRoot, font, theme);
+
+        if (layoutRoot.Find("SettingsButtonsGrid") == null)
+            BuildSettingsButtons(layoutRoot, font, theme);
 
         if (canvas.transform.Find("SettingsPopupsRoot") == null)
             BuildSettingsPopupsRoot(canvas.transform, font, theme);
 
         EditorPanelController.EnsureOnPanel(editorPanel, font, theme);
+        EnsureFlexibleEditorPanelRows(layoutRoot);
+        ApplyStripStyleToEditorPanelToolbarButtons();
+    }
+
+    /// <summary> Matches Pause / settings strip styling on scene spawn buttons and Quit. </summary>
+    public static void ApplyStripStyleToEditorPanelToolbarButtons()
+    {
+        Canvas canvas = UnityEngine.Object.FindFirstObjectByType<Canvas>();
+        if (canvas == null)
+            return;
+
+        Transform editorPanel = canvas.transform.Find("EditorPanel");
+        if (editorPanel == null)
+            editorPanel = FindDeepChild(canvas.transform, "EditorPanel");
+        if (editorPanel == null)
+            return;
+
+        LifeSimUITheme theme = LifeSimUI.Theme;
+        TMP_FontAsset font = GetSceneFont();
+
+        Transform layoutRoot = GetEditorPanelLayoutRoot(editorPanel);
+
+        foreach (string name in new[] { "SpawnGrazerButton", "SpawnPredatorButton", "SpawnPlantButton", "Quit" })
+        {
+            Transform t = layoutRoot.Find(name);
+            if (t == null)
+                t = FindDeepChild(layoutRoot, name);
+            if (t == null)
+                continue;
+            GameObject go = t.gameObject;
+            if (go.GetComponent<Button>() == null || go.GetComponent<Image>() == null)
+                continue;
+            LifeSimUIButtonStyle.ApplyStripButton(go, theme, false);
+            ApplySceneFontToTmp(go, font);
+        }
+    }
+
+    internal static Transform FindDeepChild(Transform root, string childName)
+    {
+        if (root == null)
+            return null;
+        if (root.name == childName)
+            return root;
+        for (int i = 0; i < root.childCount; i++)
+        {
+            Transform found = FindDeepChild(root.GetChild(i), childName);
+            if (found != null)
+                return found;
+        }
+        return null;
+    }
+
+    static void ApplySceneFontToTmp(GameObject root, TMP_FontAsset font)
+    {
+        if (font == null)
+            return;
+        TextMeshProUGUI tmp = root.GetComponentInChildren<TextMeshProUGUI>(true);
+        if (tmp != null)
+            tmp.font = font;
     }
 
     static TMP_FontAsset GetSceneFont()
@@ -52,29 +127,59 @@ public static class WorldEditorUIBuilder
         return any != null ? any.font : null;
     }
 
-    static int GetInsertIndexAfterGenerateMap(Transform editorPanel)
+    static int GetInsertIndexAfterGenerateMap(Transform layoutRoot)
     {
-        Transform gen = editorPanel.Find("GenerateMapButton");
-        return gen != null ? gen.GetSiblingIndex() + 1 : editorPanel.childCount;
+        Transform gen = layoutRoot.Find("GenerateMapButton");
+        return gen != null ? gen.GetSiblingIndex() + 1 : layoutRoot.childCount;
     }
 
-    static void BuildPauseButton(Transform editorPanel, TMP_FontAsset font, LifeSimUITheme theme)
+    static void EnsureFlexibleEditorPanelRows(Transform layoutRoot)
     {
-        GameObject go = CreateButton("PauseSimulationButton", "Pause", editorPanel, font, theme);
+        if (layoutRoot == null)
+            return;
+
+        VerticalLayoutGroup vlg = layoutRoot.GetComponent<VerticalLayoutGroup>();
+        if (vlg == null)
+            return;
+
+        vlg.childForceExpandHeight = true;
+        vlg.childControlHeight = true;
+        vlg.childForceExpandWidth = true;
+        vlg.childControlWidth = true;
+
+        for (int i = 0; i < layoutRoot.childCount; i++)
+        {
+            Transform row = layoutRoot.GetChild(i);
+            if (row.name == EditorPanelController.CollapseToggleName)
+                continue;
+            if (row.TryGetComponent(out TMP_InputField _))
+                continue;
+            LayoutElement le = row.GetComponent<LayoutElement>();
+            if (le != null && le.ignoreLayout)
+                continue;
+            if (le == null)
+                le = row.gameObject.AddComponent<LayoutElement>();
+            le.flexibleHeight = Mathf.Max(le.flexibleHeight, 1f);
+        }
+    }
+
+    static void BuildPauseButton(Transform layoutRoot, TMP_FontAsset font, LifeSimUITheme theme)
+    {
+        GameObject go = CreateButton("PauseSimulationButton", "Pause", layoutRoot, font, theme);
         go.GetComponent<RectTransform>().sizeDelta = new Vector2(200f, 36f);
         go.AddComponent<PauseSimulationButtonController>();
-        go.transform.SetSiblingIndex(GetInsertIndexAfterGenerateMap(editorPanel));
+        go.transform.SetSiblingIndex(GetInsertIndexAfterGenerateMap(layoutRoot));
         go.SetActive(false);
     }
 
-    static void BuildSettingsButtons(Transform editorPanel, TMP_FontAsset font, LifeSimUITheme theme)
+    static void BuildSettingsButtons(Transform layoutRoot, TMP_FontAsset font, LifeSimUITheme theme)
     {
         GameObject gridGo = new GameObject("SettingsButtonsGrid", typeof(RectTransform), typeof(GridLayoutGroup));
-        gridGo.transform.SetParent(editorPanel, false);
-        Transform pauseBtn = editorPanel.Find("PauseSimulationButton");
+        gridGo.transform.SetParent(layoutRoot, false);
+        Transform pauseBtn = layoutRoot.Find("PauseSimulationButton");
         int gridIdx = pauseBtn != null
             ? pauseBtn.GetSiblingIndex() + 1
-            : GetInsertIndexAfterGenerateMap(editorPanel);
+            : GetInsertIndexAfterGenerateMap(layoutRoot);
         gridGo.transform.SetSiblingIndex(gridIdx);
         RectTransform gridRt = gridGo.GetComponent<RectTransform>();
         gridRt.sizeDelta = new Vector2(210f, 90f);
@@ -253,153 +358,5 @@ public static class WorldEditorUIBuilder
         settingsUi.BuildCategoryPanels(cr, font, theme);
 
         root.SetActive(false);
-    }
-}
-
-/// <summary>
-/// Editor strip: collapse toggle (top-left overlay) and pause visibility after map generation starts.
-/// </summary>
-public class EditorPanelController : MonoBehaviour
-{
-    public const string CollapseToggleName = "EditorPanelCollapseToggle";
-    const string PauseButtonName = "PauseSimulationButton";
-    const string GenerateMapButtonName = "GenerateMapButton";
-
-    TextMeshProUGUI _collapseGlyph;
-    bool _collapsed;
-    bool _simulationStarted;
-
-    public static EditorPanelController Instance { get; private set; }
-
-    void Awake()
-    {
-        Instance = this;
-    }
-
-    void OnDestroy()
-    {
-        if (Instance == this)
-            Instance = null;
-    }
-
-    /// <summary> Ensures controller and collapse toggle exist; call after other editor panel UI is built. </summary>
-    public static void EnsureOnPanel(Transform editorPanel, TMP_FontAsset font, LifeSimUITheme theme)
-    {
-        if (editorPanel == null)
-            return;
-
-        EditorPanelController c = editorPanel.GetComponent<EditorPanelController>();
-        if (c == null)
-            c = editorPanel.gameObject.AddComponent<EditorPanelController>();
-
-        c.EnsureCollapseBuilt(font, theme);
-        c.BringCollapseToFront();
-    }
-
-    /// <summary> Called when Generate Map has started the simulation; reveals pause when the panel is expanded. </summary>
-    public void NotifySimulationStarted()
-    {
-        _simulationStarted = true;
-        if (!_collapsed)
-            ApplyGenerateMapVisibility();
-        ApplyPauseVisibility();
-    }
-
-    void EnsureCollapseBuilt(TMP_FontAsset font, LifeSimUITheme theme)
-    {
-        Transform existing = transform.Find(CollapseToggleName);
-        if (existing != null)
-        {
-            _collapseGlyph = existing.GetComponentInChildren<TextMeshProUGUI>(true);
-            return;
-        }
-
-        LifeSimUITheme t = theme != null ? theme : LifeSimUI.Theme;
-
-        GameObject go = new GameObject(CollapseToggleName, typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement));
-        go.transform.SetParent(transform, false);
-
-        RectTransform rt = go.GetComponent<RectTransform>();
-        rt.anchorMin = new Vector2(0f, 1f);
-        rt.anchorMax = new Vector2(0f, 1f);
-        rt.pivot = new Vector2(0f, 1f);
-        rt.anchoredPosition = new Vector2(6f, -6f);
-        rt.sizeDelta = new Vector2(30f, 30f);
-
-        LayoutElement layout = go.GetComponent<LayoutElement>();
-        layout.ignoreLayout = true;
-
-        GameObject textGo = new GameObject("Glyph", typeof(RectTransform), typeof(TextMeshProUGUI));
-        textGo.transform.SetParent(go.transform, false);
-        RectTransform tr = textGo.GetComponent<RectTransform>();
-        tr.anchorMin = Vector2.zero;
-        tr.anchorMax = Vector2.one;
-        tr.offsetMin = Vector2.zero;
-        tr.offsetMax = Vector2.zero;
-
-        _collapseGlyph = textGo.GetComponent<TextMeshProUGUI>();
-        _collapseGlyph.text = ">";
-        _collapseGlyph.alignment = TextAlignmentOptions.Center;
-        _collapseGlyph.enableAutoSizing = true;
-        _collapseGlyph.fontSizeMin = 12f;
-        _collapseGlyph.fontSizeMax = 22f;
-        if (font != null)
-            _collapseGlyph.font = font;
-
-        go.GetComponent<Image>().raycastTarget = true;
-        Button button = go.GetComponent<Button>();
-        button.onClick.AddListener(ToggleCollapsed);
-
-        LifeSimUIButtonStyle.ApplyStripButton(go, t, false);
-    }
-
-    void BringCollapseToFront()
-    {
-        Transform t = transform.Find(CollapseToggleName);
-        if (t != null)
-            t.SetAsLastSibling();
-    }
-
-    void ToggleCollapsed()
-    {
-        _collapsed = !_collapsed;
-        ApplyCollapsedVisuals();
-    }
-
-    void ApplyCollapsedVisuals()
-    {
-        if (_collapseGlyph != null)
-            _collapseGlyph.text = _collapsed ? "<" : ">";
-
-        for (int i = 0; i < transform.childCount; i++)
-        {
-            Transform child = transform.GetChild(i);
-            if (child.name == CollapseToggleName)
-                continue;
-
-            child.gameObject.SetActive(!_collapsed);
-        }
-
-        if (!_collapsed)
-            ApplyGenerateMapVisibility();
-        ApplyPauseVisibility();
-    }
-
-    void ApplyGenerateMapVisibility()
-    {
-        Transform gen = transform.Find(GenerateMapButtonName);
-        if (gen == null)
-            return;
-
-        gen.gameObject.SetActive(!_simulationStarted);
-    }
-
-    void ApplyPauseVisibility()
-    {
-        Transform pause = transform.Find(PauseButtonName);
-        if (pause == null)
-            return;
-
-        pause.gameObject.SetActive(_simulationStarted && !_collapsed);
     }
 }

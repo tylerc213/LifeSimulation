@@ -14,13 +14,14 @@
 using UnityEngine;
 
 /// <summary> Ensures settings store and world editor UI exist on Simulation load. </summary>
+[DefaultExecutionOrder(-60)]
 public class SimulationSceneBootstrap : MonoBehaviour
 {
     void Start()
     {
         EnsureSimulationSettingsStore();
         Canvas canvas = FindFirstObjectByType<Canvas>();
-        WorldEditorUIBuilder.EnsureBuilt(canvas);
+        WorldEditorShell.EnsureBuilt(canvas);
     }
 
     static void EnsureSimulationSettingsStore()
