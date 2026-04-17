@@ -122,6 +122,7 @@ public class SimulationSceneHandler : MonoBehaviour
                 existingButton.onClick.RemoveAllListeners();
                 existingButton.onClick.AddListener(Quit);
             }
+
             return;
         }
 
@@ -134,7 +135,7 @@ public class SimulationSceneHandler : MonoBehaviour
         rect.anchoredPosition = new Vector2(0f, -200f);
 
         Image image = buttonObject.GetComponent<Image>();
-        image.color = new Color32(27, 182, 176, 255);
+        image.type = Image.Type.Sliced;
 
         Button button = buttonObject.GetComponent<Button>();
         button.onClick.AddListener(Quit);
@@ -150,8 +151,24 @@ public class SimulationSceneHandler : MonoBehaviour
         TextMeshProUGUI label = labelObject.GetComponent<TextMeshProUGUI>();
         label.text = "Quit";
         label.alignment = TextAlignmentOptions.Center;
-        label.fontSize = 24;
-        label.color = new Color32(50, 50, 50, 255);
+        CopyTmpFontFromScene(label);
+
+        ApplyQuitToolbarStyle(buttonObject.transform);
+    }
+
+    static void ApplyQuitToolbarStyle(Transform quitRoot)
+    {
+        LifeSimUIButtonStyle.ApplyStripButton(quitRoot.gameObject, LifeSimUI.Theme, false);
+        TextMeshProUGUI label = quitRoot.GetComponentInChildren<TextMeshProUGUI>(true);
+        if (label != null)
+            CopyTmpFontFromScene(label);
+    }
+
+    static void CopyTmpFontFromScene(TextMeshProUGUI target)
+    {
+        TextMeshProUGUI sample = Object.FindFirstObjectByType<TextMeshProUGUI>();
+        if (sample != null && target != null && sample.font != null)
+            target.font = sample.font;
     }
 
     private void AutoAssignReferences()

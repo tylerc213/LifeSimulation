@@ -50,112 +50,112 @@ public class WorldEditorSettingsUI : MonoBehaviour
         resetButton = reset;
     }
 
-    public void BuildCategoryPanels(Transform content, TMP_FontAsset font)
+    public void BuildCategoryPanels(Transform content, TMP_FontAsset font, LifeSimUITheme theme)
     {
-        _panelGame = CreatePanelShell("PanelGame", content);
-        _panelPlant = CreatePanelShell("PanelPlant", content);
-        _panelGrazer = CreatePanelShell("PanelGrazer", content);
-        _panelPredator = CreatePanelShell("PanelPredator", content);
+        _panelGame = CreatePanelShell("PanelGame", content, theme);
+        _panelPlant = CreatePanelShell("PanelPlant", content, theme);
+        _panelGrazer = CreatePanelShell("PanelGrazer", content, theme);
+        _panelPredator = CreatePanelShell("PanelPredator", content, theme);
 
-        BuildGame(_panelGame.transform, font);
-        BuildPlant(_panelPlant.transform, font);
-        BuildGrazer(_panelGrazer.transform, font);
-        BuildPredator(_panelPredator.transform, font);
+        BuildGame(_panelGame.transform, font, theme);
+        BuildPlant(_panelPlant.transform, font, theme);
+        BuildGrazer(_panelGrazer.transform, font, theme);
+        BuildPredator(_panelPredator.transform, font, theme);
 
         _panelPlant.SetActive(false);
         _panelGrazer.SetActive(false);
         _panelPredator.SetActive(false);
     }
 
-    static GameObject CreatePanelShell(string name, Transform parent)
+    static GameObject CreatePanelShell(string name, Transform parent, LifeSimUITheme theme)
     {
         GameObject go = new GameObject(name, typeof(RectTransform), typeof(VerticalLayoutGroup));
         go.transform.SetParent(parent, false);
         VerticalLayoutGroup v = go.GetComponent<VerticalLayoutGroup>();
-        v.spacing = 8f;
+        v.spacing = theme.spacingS;
         v.childAlignment = TextAnchor.UpperCenter;
         v.childControlWidth = true;
         v.childForceExpandWidth = true;
         return go;
     }
 
-    void BuildGame(Transform parent, TMP_FontAsset font)
+    void BuildGame(Transform parent, TMP_FontAsset font, LifeSimUITheme theme)
     {
-        AddSlider(parent, font, "Simulation speed", 0f, 10f, false,
+        AddSlider(parent, font, theme, "Simulation speed", 0f, 10f, false,
             s => s.game.simulationSpeed, (s, v) => s.game.simulationSpeed = v);
-        AddSlider(parent, font, "Rock spawn rate", 0f, 0.03f, false,
+        AddSlider(parent, font, theme, "Rock spawn rate", 0f, 0.03f, false,
             s => s.terrain.rockSpawnRate, (s, v) => s.terrain.rockSpawnRate = v);
-        AddSlider(parent, font, "Obstacle cluster min", 1f, 4f, true,
+        AddSlider(parent, font, theme, "Obstacle cluster min", 1f, 4f, true,
             s => s.terrain.obstacleMinCluster, (s, v) => s.terrain.obstacleMinCluster = Mathf.RoundToInt(v));
-        AddSlider(parent, font, "Obstacle cluster max", 1f, 6f, true,
+        AddSlider(parent, font, theme, "Obstacle cluster max", 1f, 6f, true,
             s => s.terrain.obstacleMaxCluster, (s, v) => s.terrain.obstacleMaxCluster = Mathf.RoundToInt(v));
-        AddSlider(parent, font, "Terrain feature scale", 0.02f, 0.3f, false,
+        AddSlider(parent, font, theme, "Terrain feature scale", 0.02f, 0.3f, false,
             s => s.terrain.perlinScale, (s, v) => s.terrain.perlinScale = v);
-        AddSlider(parent, font, "Water spawn rate", 0f, 1f, false,
+        AddSlider(parent, font, theme, "Water spawn rate", 0f, 1f, false,
             s => s.terrain.waterSpawnRate, (s, v) => s.terrain.waterSpawnRate = v);
     }
 
-    void BuildPlant(Transform parent, TMP_FontAsset font)
+    void BuildPlant(Transform parent, TMP_FontAsset font, LifeSimUITheme theme)
     {
-        AddSlider(parent, font, "Starting population", 0f, 2000f, true,
+        AddSlider(parent, font, theme, "Starting population", 0f, 2000f, true,
             s => s.plant.startingPopulation, (s, v) => s.plant.startingPopulation = Mathf.RoundToInt(v));
-        AddSlider(parent, font, "Max population", 0f, 5000f, true,
+        AddSlider(parent, font, theme, "Max population", 0f, 5000f, true,
             s => s.plant.maxPopulation, (s, v) => s.plant.maxPopulation = Mathf.RoundToInt(v));
-        AddToggle(parent, font, "Replenish enabled",
+        AddToggle(parent, font, theme, "Replenish enabled",
             s => s.plant.replenishEnabled, (s, v) => s.plant.replenishEnabled = v);
-        AddSlider(parent, font, "Replenish interval (s)", 0.25f, 120f, false,
+        AddSlider(parent, font, theme, "Replenish interval (s)", 0.25f, 120f, false,
             s => s.plant.replenishIntervalSeconds, (s, v) => s.plant.replenishIntervalSeconds = v);
-        AddSlider(parent, font, "Replenish amount (per tick)", 0f, 500f, true,
+        AddSlider(parent, font, theme, "Replenish amount (per tick)", 0f, 500f, true,
             s => s.plant.replenishAmount, (s, v) => s.plant.replenishAmount = Mathf.RoundToInt(v));
-        AddSlider(parent, font, "Expression: primary / leaf", 0f, 3f, false,
+        AddSlider(parent, font, theme, "Expression: primary / leaf", 0f, 3f, false,
             s => s.plant.expression.primaryStats, (s, v) => s.plant.expression.primaryStats = v);
-        AddSlider(parent, font, "Expression: secondary", 0f, 3f, false,
+        AddSlider(parent, font, theme, "Expression: secondary", 0f, 3f, false,
             s => s.plant.expression.secondaryTraits, (s, v) => s.plant.expression.secondaryTraits = v);
-        AddSlider(parent, font, "Expression: defense", 0f, 3f, false,
+        AddSlider(parent, font, theme, "Expression: defense", 0f, 3f, false,
             s => s.plant.expression.defenseTraits, (s, v) => s.plant.expression.defenseTraits = v);
     }
 
-    void BuildGrazer(Transform parent, TMP_FontAsset font)
+    void BuildGrazer(Transform parent, TMP_FontAsset font, LifeSimUITheme theme)
     {
-        AddSlider(parent, font, "Starting population", 0f, 2000f, true,
+        AddSlider(parent, font, theme, "Starting population", 0f, 2000f, true,
             s => s.grazer.startingPopulation, (s, v) => s.grazer.startingPopulation = Mathf.RoundToInt(v));
-        AddSlider(parent, font, "Max population", 0f, 3000f, true,
+        AddSlider(parent, font, theme, "Max population", 0f, 3000f, true,
             s => s.grazer.maxPopulation, (s, v) => s.grazer.maxPopulation = Mathf.RoundToInt(v));
-        AddToggle(parent, font, "Replenish enabled",
+        AddToggle(parent, font, theme, "Replenish enabled",
             s => s.grazer.replenishEnabled, (s, v) => s.grazer.replenishEnabled = v);
-        AddSlider(parent, font, "Replenish interval (s)", 0.25f, 120f, false,
+        AddSlider(parent, font, theme, "Replenish interval (s)", 0.25f, 120f, false,
             s => s.grazer.replenishIntervalSeconds, (s, v) => s.grazer.replenishIntervalSeconds = v);
-        AddSlider(parent, font, "Replenish amount (per tick)", 0f, 200f, true,
+        AddSlider(parent, font, theme, "Replenish amount (per tick)", 0f, 200f, true,
             s => s.grazer.replenishAmount, (s, v) => s.grazer.replenishAmount = Mathf.RoundToInt(v));
-        AddSlider(parent, font, "Expression: stat traits", 0f, 3f, false,
+        AddSlider(parent, font, theme, "Expression: stat traits", 0f, 3f, false,
             s => s.grazer.expression.statTraits, (s, v) => s.grazer.expression.statTraits = v);
-        AddSlider(parent, font, "Expression: rare traits", 0f, 3f, false,
+        AddSlider(parent, font, theme, "Expression: rare traits", 0f, 3f, false,
             s => s.grazer.expression.rareTraits, (s, v) => s.grazer.expression.rareTraits = v);
-        AddSlider(parent, font, "Expression: pack / leader", 0f, 3f, false,
+        AddSlider(parent, font, theme, "Expression: pack / leader", 0f, 3f, false,
             s => s.grazer.expression.packTraits, (s, v) => s.grazer.expression.packTraits = v);
     }
 
-    void BuildPredator(Transform parent, TMP_FontAsset font)
+    void BuildPredator(Transform parent, TMP_FontAsset font, LifeSimUITheme theme)
     {
-        AddSlider(parent, font, "Starting population", 0f, 1000f, true,
+        AddSlider(parent, font, theme, "Starting population", 0f, 1000f, true,
             s => s.predator.startingPopulation, (s, v) => s.predator.startingPopulation = Mathf.RoundToInt(v));
-        AddSlider(parent, font, "Max population", 0f, 2000f, true,
+        AddSlider(parent, font, theme, "Max population", 0f, 2000f, true,
             s => s.predator.maxPopulation, (s, v) => s.predator.maxPopulation = Mathf.RoundToInt(v));
-        AddToggle(parent, font, "Replenish enabled",
+        AddToggle(parent, font, theme, "Replenish enabled",
             s => s.predator.replenishEnabled, (s, v) => s.predator.replenishEnabled = v);
-        AddSlider(parent, font, "Replenish interval (s)", 0.25f, 120f, false,
+        AddSlider(parent, font, theme, "Replenish interval (s)", 0.25f, 120f, false,
             s => s.predator.replenishIntervalSeconds, (s, v) => s.predator.replenishIntervalSeconds = v);
-        AddSlider(parent, font, "Replenish amount (per tick)", 0f, 200f, true,
+        AddSlider(parent, font, theme, "Replenish amount (per tick)", 0f, 200f, true,
             s => s.predator.replenishAmount, (s, v) => s.predator.replenishAmount = Mathf.RoundToInt(v));
-        AddSlider(parent, font, "Expression: stat traits", 0f, 3f, false,
+        AddSlider(parent, font, theme, "Expression: stat traits", 0f, 3f, false,
             s => s.predator.expression.statTraits, (s, v) => s.predator.expression.statTraits = v);
-        AddSlider(parent, font, "Expression: rare traits", 0f, 3f, false,
+        AddSlider(parent, font, theme, "Expression: rare traits", 0f, 3f, false,
             s => s.predator.expression.rareTraits, (s, v) => s.predator.expression.rareTraits = v);
-        AddSlider(parent, font, "Expression: apex", 0f, 3f, false,
+        AddSlider(parent, font, theme, "Expression: apex", 0f, 3f, false,
             s => s.predator.expression.apexTraits, (s, v) => s.predator.expression.apexTraits = v);
     }
 
-    void AddSlider(Transform parent, TMP_FontAsset font, string label, float min, float max, bool whole,
+    void AddSlider(Transform parent, TMP_FontAsset font, LifeSimUITheme theme, string label, float min, float max, bool whole,
         Func<SimulationSettings, float> get, Action<SimulationSettings, float> set)
     {
         GameObject row = new GameObject("Row", typeof(RectTransform), typeof(HorizontalLayoutGroup));
@@ -163,15 +163,16 @@ public class WorldEditorSettingsUI : MonoBehaviour
         HorizontalLayoutGroup h = row.GetComponent<HorizontalLayoutGroup>();
         h.childForceExpandWidth = false;
         h.childForceExpandHeight = true;
-        h.spacing = 6f;
-        h.padding = new RectOffset(0, 0, 2, 2);
+        h.spacing = theme.spacingXs;
+        int py = Mathf.Max(1, Mathf.RoundToInt(theme.spacingXs * 0.33f));
+        h.padding = new RectOffset(0, 0, py, py);
 
         GameObject labGo = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
         labGo.transform.SetParent(row.transform, false);
         TextMeshProUGUI lab = labGo.GetComponent<TextMeshProUGUI>();
         lab.text = label;
-        lab.fontSize = 13f;
-        lab.color = WorldEditorUIBuilder.TextDimPublic;
+        lab.fontSize = theme.formRowLabelFontSize;
+        lab.color = theme.bodyText;
         if (font != null)
             lab.font = font;
         LayoutElement leL = labGo.AddComponent<LayoutElement>();
@@ -181,14 +182,14 @@ public class WorldEditorSettingsUI : MonoBehaviour
         GameObject valGo = new GameObject("Value", typeof(RectTransform), typeof(TextMeshProUGUI));
         valGo.transform.SetParent(row.transform, false);
         TextMeshProUGUI valTmp = valGo.GetComponent<TextMeshProUGUI>();
-        valTmp.fontSize = 13f;
-        valTmp.color = WorldEditorUIBuilder.TextDimPublic;
+        valTmp.fontSize = theme.formRowLabelFontSize;
+        valTmp.color = theme.bodyText;
         if (font != null)
             valTmp.font = font;
         LayoutElement leV = valGo.AddComponent<LayoutElement>();
         leV.preferredWidth = 48f;
 
-        Slider sl = CreateSliderSimple(row.transform);
+        Slider sl = CreateSliderSimple(row.transform, theme);
         LayoutElement leS = sl.gameObject.AddComponent<LayoutElement>();
         leS.flexibleWidth = 1f;
         leS.minHeight = 22f;
@@ -222,7 +223,7 @@ public class WorldEditorSettingsUI : MonoBehaviour
         RefreshValue();
     }
 
-    void AddToggle(Transform parent, TMP_FontAsset font, string label,
+    void AddToggle(Transform parent, TMP_FontAsset font, LifeSimUITheme theme, string label,
         Func<SimulationSettings, bool> get, Action<SimulationSettings, bool> set)
     {
         const float togglePx = 24f;
@@ -230,7 +231,7 @@ public class WorldEditorSettingsUI : MonoBehaviour
         GameObject row = new GameObject("ToggleRow", typeof(RectTransform), typeof(HorizontalLayoutGroup));
         row.transform.SetParent(parent, false);
         HorizontalLayoutGroup h = row.GetComponent<HorizontalLayoutGroup>();
-        h.spacing = 8f;
+        h.spacing = theme.spacingS;
         h.childAlignment = TextAnchor.MiddleLeft;
         h.childForceExpandHeight = true;
         LayoutElement rowLe = row.AddComponent<LayoutElement>();
@@ -241,8 +242,8 @@ public class WorldEditorSettingsUI : MonoBehaviour
         labGo.transform.SetParent(row.transform, false);
         TextMeshProUGUI lab = labGo.GetComponent<TextMeshProUGUI>();
         lab.text = label;
-        lab.fontSize = 13f;
-        lab.color = WorldEditorUIBuilder.TextDimPublic;
+        lab.fontSize = theme.formRowLabelFontSize;
+        lab.color = theme.bodyText;
         if (font != null)
             lab.font = font;
         LayoutElement leL = labGo.AddComponent<LayoutElement>();
@@ -275,7 +276,7 @@ public class WorldEditorSettingsUI : MonoBehaviour
         bgr.offsetMin = Vector2.zero;
         bgr.offsetMax = Vector2.zero;
         Image bgImg = bg.GetComponent<Image>();
-        bgImg.color = new Color(1f, 1f, 1f, 0.95f);
+        bgImg.color = theme.toggleBoxBackground;
         t.targetGraphic = bgImg;
 
         GameObject mark = new GameObject("Checkmark", typeof(RectTransform), typeof(Image));
@@ -286,7 +287,7 @@ public class WorldEditorSettingsUI : MonoBehaviour
         mr.offsetMin = Vector2.zero;
         mr.offsetMax = Vector2.zero;
         Image markImg = mark.GetComponent<Image>();
-        markImg.color = new Color(0.15f, 0.65f, 0.55f, 1f);
+        markImg.color = theme.toggleCheckmark;
         t.graphic = markImg;
 
         void RefreshT()
@@ -310,7 +311,7 @@ public class WorldEditorSettingsUI : MonoBehaviour
         RefreshT();
     }
 
-    static Slider CreateSliderSimple(Transform parent)
+    static Slider CreateSliderSimple(Transform parent, LifeSimUITheme theme)
     {
         GameObject root = new GameObject("Slider", typeof(RectTransform), typeof(Slider));
         root.transform.SetParent(parent, false);
@@ -322,7 +323,7 @@ public class WorldEditorSettingsUI : MonoBehaviour
         bgRt.anchorMin = Vector2.zero;
         bgRt.anchorMax = Vector2.one;
         bgRt.sizeDelta = Vector2.zero;
-        bg.GetComponent<Image>().color = new Color(0.15f, 0.15f, 0.15f, 0.6f);
+        bg.GetComponent<Image>().color = theme.sliderTrackBackground;
 
         GameObject fa = new GameObject("Fill Area", typeof(RectTransform));
         fa.transform.SetParent(root.transform, false);
@@ -337,7 +338,7 @@ public class WorldEditorSettingsUI : MonoBehaviour
         fillRt.anchorMin = Vector2.zero;
         fillRt.anchorMax = Vector2.one;
         fillRt.sizeDelta = Vector2.zero;
-        fill.GetComponent<Image>().color = new Color(0.18f, 0.65f, 0.62f, 1f);
+        fill.GetComponent<Image>().color = theme.sliderFill;
 
         GameObject ha = new GameObject("Handle Slide Area", typeof(RectTransform));
         ha.transform.SetParent(root.transform, false);
@@ -352,7 +353,7 @@ public class WorldEditorSettingsUI : MonoBehaviour
         hRt.sizeDelta = new Vector2(16f, 16f);
 
         Image hImg = handle.GetComponent<Image>();
-        hImg.color = Color.white;
+        hImg.color = theme.sliderHandle;
 
         sl.fillRect = fillRt;
         sl.handleRect = hRt;

@@ -8,18 +8,15 @@ using UnityEngine.UI;
 
 public static class WorldEditorUIBuilder
 {
-    static readonly Color PanelTint = new Color(0.329f, 0.763f, 0.840f, 0.392f);
-    static readonly Color ButtonTint = new Color(0.102f, 0.710f, 0.694f, 1f);
-    static readonly Color PopoutTint = new Color(0.329f, 0.763f, 0.840f, 0.92f);
-    static readonly Color TextDim = new Color(0.196f, 0.196f, 0.196f, 1f);
-
-    public static Color TextDimPublic => TextDim;
+    /// <summary>Shared body label color for legacy call sites; prefer <see cref="LifeSimUI.Theme"/>.</summary>
+    public static Color TextDimPublic => LifeSimUI.Theme.bodyText;
 
     public static void EnsureBuilt(Canvas canvas)
     {
         if (canvas == null)
             return;
 
+        LifeSimUITheme theme = LifeSimUI.Theme;
         TMP_FontAsset font = GetSceneFont();
 
         Transform editorPanel = canvas.transform.Find("EditorPanel");
@@ -27,13 +24,13 @@ public static class WorldEditorUIBuilder
             return;
 
         if (editorPanel.Find("PauseSimulationButton") == null)
-            BuildPauseButton(editorPanel, font);
+            BuildPauseButton(editorPanel, font, theme);
 
         if (editorPanel.Find("SettingsButtonsGrid") == null)
-            BuildSettingsButtons(editorPanel, font);
+            BuildSettingsButtons(editorPanel, font, theme);
 
         if (canvas.transform.Find("SettingsPopupsRoot") == null)
-            BuildSettingsPopupsRoot(canvas.transform, font);
+            BuildSettingsPopupsRoot(canvas.transform, font, theme);
     }
 
     static TMP_FontAsset GetSceneFont()
@@ -48,16 +45,16 @@ public static class WorldEditorUIBuilder
         return gen != null ? gen.GetSiblingIndex() + 1 : editorPanel.childCount;
     }
 
-    static void BuildPauseButton(Transform editorPanel, TMP_FontAsset font)
+    static void BuildPauseButton(Transform editorPanel, TMP_FontAsset font, LifeSimUITheme theme)
     {
-        GameObject go = CreateButton("PauseSimulationButton", "Pause", editorPanel, font);
+        GameObject go = CreateButton("PauseSimulationButton", "Pause", editorPanel, font, theme);
         RectTransform rt = go.GetComponent<RectTransform>();
         rt.sizeDelta = new Vector2(200f, 36f);
         go.AddComponent<PauseSimulationButtonController>();
         go.transform.SetSiblingIndex(GetInsertIndexAfterGenerateMap(editorPanel));
     }
 
-    static void BuildSettingsButtons(Transform editorPanel, TMP_FontAsset font)
+    static void BuildSettingsButtons(Transform editorPanel, TMP_FontAsset font, LifeSimUITheme theme)
     {
         GameObject gridGo = new GameObject("SettingsButtonsGrid", typeof(RectTransform), typeof(GridLayoutGroup));
         gridGo.transform.SetParent(editorPanel, false);
@@ -70,20 +67,21 @@ public static class WorldEditorUIBuilder
         gridRt.sizeDelta = new Vector2(210f, 90f);
         GridLayoutGroup grid = gridGo.GetComponent<GridLayoutGroup>();
         grid.cellSize = new Vector2(100f, 40f);
-        grid.spacing = new Vector2(8f, 8f);
+        grid.spacing = new Vector2(theme.spacingS, theme.spacingS);
         grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
         grid.constraintCount = 2;
         grid.childAlignment = TextAnchor.MiddleCenter;
 
-        CreateSettingsOpenerButton("GameSettingsButton", "Game Settings", gridGo.transform, font);
-        CreateSettingsOpenerButton("PlantSettingsButton", "Plant Settings", gridGo.transform, font);
-        CreateSettingsOpenerButton("GrazerSettingsButton", "Grazer Settings", gridGo.transform, font);
-        CreateSettingsOpenerButton("PredatorSettingsButton", "Predator Settings", gridGo.transform, font);
+        CreateSettingsOpenerButton("GameSettingsButton", "Game Settings", gridGo.transform, font, theme);
+        CreateSettingsOpenerButton("PlantSettingsButton", "Plant Settings", gridGo.transform, font, theme);
+        CreateSettingsOpenerButton("GrazerSettingsButton", "Grazer Settings", gridGo.transform, font, theme);
+        CreateSettingsOpenerButton("PredatorSettingsButton", "Predator Settings", gridGo.transform, font, theme);
     }
 
-    static void CreateSettingsOpenerButton(string name, string label, Transform parent, TMP_FontAsset font)
+    static void CreateSettingsOpenerButton(string name, string label, Transform parent, TMP_FontAsset font,
+        LifeSimUITheme theme)
     {
-        GameObject go = CreateButton(name, label, parent, font);
+        GameObject go = CreateButton(name, label, parent, font, theme);
         Button b = go.GetComponent<Button>();
         string n = name;
         b.onClick.AddListener(() =>
@@ -98,14 +96,26 @@ public static class WorldEditorUIBuilder
         });
     }
 
-    static GameObject CreateButton(string name, string label, Transform parent, TMP_FontAsset font)
+    static GameObject CreateButton(string name, string label, Transform parent, TMP_FontAsset font,
+        LifeSimUITheme theme)
     {
         GameObject go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
         go.transform.SetParent(parent, false);
         Image img = go.GetComponent<Image>();
-        img.color = ButtonTint;
+        img.color = theme.toolbarButtonBackground;
         img.type = Image.Type.Sliced;
         img.raycastTarget = true;
+
+        Button btn = go.GetComponent<Button>();
+        ColorBlock cb = btn.colors;
+        cb.normalColor = Color.white;
+        cb.highlightedColor = new Color(0.92f, 0.92f, 0.92f, 1f);
+        cb.pressedColor = new Color(0.82f, 0.82f, 0.82f, 1f);
+        cb.selectedColor = Color.white;
+        cb.disabledColor = new Color(0.78f, 0.78f, 0.78f, 0.5f);
+        btn.colors = cb;
+        btn.transition = Selectable.Transition.ColorTint;
+        btn.targetGraphic = img;
 
         GameObject textGo = new GameObject("Text (TMP)", typeof(RectTransform), typeof(TextMeshProUGUI));
         textGo.transform.SetParent(go.transform, false);
@@ -116,8 +126,8 @@ public static class WorldEditorUIBuilder
         tr.offsetMax = Vector2.zero;
         TextMeshProUGUI tmp = textGo.GetComponent<TextMeshProUGUI>();
         tmp.text = label;
-        tmp.fontSize = 16f;
-        tmp.color = TextDim;
+        tmp.fontSize = theme.toolbarButtonFontSize;
+        tmp.color = theme.toolbarButtonLabel;
         tmp.alignment = TextAlignmentOptions.Center;
         if (font != null)
             tmp.font = font;
@@ -125,7 +135,7 @@ public static class WorldEditorUIBuilder
         return go;
     }
 
-    static void BuildSettingsPopupsRoot(Transform canvas, TMP_FontAsset font)
+    static void BuildSettingsPopupsRoot(Transform canvas, TMP_FontAsset font, LifeSimUITheme theme)
     {
         GameObject root = new GameObject("SettingsPopupsRoot", typeof(RectTransform), typeof(WorldEditorSettingsUI));
         root.transform.SetParent(canvas, false);
@@ -143,7 +153,7 @@ public static class WorldEditorUIBuilder
         br.offsetMin = Vector2.zero;
         br.offsetMax = Vector2.zero;
         Image bi = blocker.GetComponent<Image>();
-        bi.color = new Color(0f, 0f, 0f, 0.01f);
+        bi.color = theme.modalOverlayDim;
         bi.raycastTarget = true;
         Button bb = blocker.GetComponent<Button>();
         bb.transition = Selectable.Transition.None;
@@ -162,7 +172,7 @@ public static class WorldEditorUIBuilder
         sr.anchoredPosition = new Vector2(-265f, 0f);
         sr.sizeDelta = new Vector2(300f, 520f);
         Image si = shell.GetComponent<Image>();
-        si.color = PopoutTint;
+        si.color = theme.modalShellBackground;
         si.type = Image.Type.Sliced;
         si.raycastTarget = true;
 
@@ -172,27 +182,29 @@ public static class WorldEditorUIBuilder
         hr.anchorMin = new Vector2(0f, 1f);
         hr.anchorMax = new Vector2(1f, 1f);
         hr.pivot = new Vector2(0.5f, 1f);
-        hr.anchoredPosition = new Vector2(0f, -8f);
+        hr.anchoredPosition = new Vector2(0f, -theme.spacingS);
         hr.sizeDelta = new Vector2(-16f, 36f);
         HorizontalLayoutGroup hg = header.GetComponent<HorizontalLayoutGroup>();
         hg.childForceExpandWidth = false;
         hg.childForceExpandHeight = true;
-        hg.spacing = 8f;
-        hg.padding = new RectOffset(8, 8, 0, 0);
+        hg.spacing = theme.spacingS;
+        int pad = Mathf.RoundToInt(theme.spacingS);
+        hg.padding = new RectOffset(pad, pad, 0, 0);
 
         GameObject titleGo = new GameObject("Title", typeof(RectTransform), typeof(TextMeshProUGUI));
         titleGo.transform.SetParent(header.transform, false);
         TextMeshProUGUI titleTmp = titleGo.GetComponent<TextMeshProUGUI>();
         titleTmp.text = "Settings";
-        titleTmp.fontSize = 20f;
+        titleTmp.fontSize = theme.modalTitleFontSize;
         titleTmp.fontStyle = FontStyles.Bold;
-        titleTmp.color = TextDim;
+        titleTmp.color = theme.bodyText;
         if (font != null)
             titleTmp.font = font;
         LayoutElement le = titleGo.AddComponent<LayoutElement>();
         le.flexibleWidth = 1f;
 
-        GameObject resetBtn = CreateButton("ResetCategoryButton", "Reset", header.transform, font);
+        GameObject resetBtn = CreateButton("ResetCategoryButton", "Reset", header.transform, font, theme);
+        LifeSimUIButtonStyle.ApplyStripDangerButton(resetBtn, theme);
         LayoutElement resetLe = resetBtn.AddComponent<LayoutElement>();
         resetLe.preferredWidth = 72f;
         Button resetB = resetBtn.GetComponent<Button>();
@@ -207,9 +219,9 @@ public static class WorldEditorUIBuilder
         RectTransform scr = scrollGo.GetComponent<RectTransform>();
         scr.anchorMin = new Vector2(0f, 0f);
         scr.anchorMax = new Vector2(1f, 1f);
-        scr.offsetMin = new Vector2(8f, 12f);
-        scr.offsetMax = new Vector2(-8f, -48f);
-        scrollGo.GetComponent<Image>().color = new Color(1f, 1f, 1f, 0.06f);
+        scr.offsetMin = new Vector2(theme.spacingS, theme.spacingL);
+        scr.offsetMax = new Vector2(-theme.spacingS, -48f);
+        scrollGo.GetComponent<Image>().color = theme.modalScrollWell;
 
         ScrollRect scroll = scrollGo.GetComponent<ScrollRect>();
         GameObject viewport = new GameObject("Viewport", typeof(RectTransform), typeof(Image), typeof(Mask));
@@ -219,7 +231,7 @@ public static class WorldEditorUIBuilder
         vr.anchorMax = Vector2.one;
         vr.offsetMin = Vector2.zero;
         vr.offsetMax = Vector2.zero;
-        viewport.GetComponent<Image>().color = new Color(1f, 1f, 1f, 0.02f);
+        viewport.GetComponent<Image>().color = theme.modalViewportTint;
         viewport.GetComponent<Mask>().showMaskGraphic = false;
 
         GameObject content = new GameObject("Content", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
@@ -231,7 +243,7 @@ public static class WorldEditorUIBuilder
         cr.anchoredPosition = Vector2.zero;
         cr.sizeDelta = new Vector2(0f, 0f);
         VerticalLayoutGroup vg = content.GetComponent<VerticalLayoutGroup>();
-        vg.spacing = 10f;
+        vg.spacing = theme.spacingM;
         vg.childAlignment = TextAnchor.UpperCenter;
         vg.childControlWidth = true;
         vg.childForceExpandWidth = true;
@@ -245,7 +257,7 @@ public static class WorldEditorUIBuilder
 
         WorldEditorSettingsUI settingsUi = root.GetComponent<WorldEditorSettingsUI>();
         settingsUi.InjectBuiltReferences(root, blocker, shell, titleTmp, cr, resetB);
-        settingsUi.BuildCategoryPanels(cr, font);
+        settingsUi.BuildCategoryPanels(cr, font, theme);
 
         root.SetActive(false);
     }
