@@ -43,8 +43,13 @@ public static class LifeSimUIButtonStyle
         Image img = root.GetComponent<Image>();
         if (img != null)
         {
+            Sprite rounded = LifeSimUI.BuiltinRoundedUISprite;
+            if (rounded != null)
+            {
+                img.sprite = rounded;
+                img.type = Image.Type.Sliced;
+            }
             img.color = background;
-            img.type = Image.Type.Sliced;
         }
 
         Button button = root.GetComponent<Button>();
@@ -67,6 +72,9 @@ public static class LifeSimUIButtonStyle
         TextMeshProUGUI tmp = root.GetComponentInChildren<TextMeshProUGUI>(true);
         if (tmp != null)
         {
+            TMP_FontAsset btnFont = LifeSimUI.ButtonFont;
+            if (btnFont != null)
+                tmp.font = btnFont;
             tmp.fontSize = theme.toolbarButtonFontSize;
             tmp.color = labelColor;
         }

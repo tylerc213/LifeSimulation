@@ -11,6 +11,7 @@
 //    Nakama board IDs; loads top rows and binds Name/Score TMP fields. Back navigates to main menu.
 // -----------------------------------------------------------------------------
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -75,8 +76,31 @@ public class LeaderboardSceneHandler : MonoBehaviour
                 categoryBarRoot = row.GetComponent<RectTransform>();
         }
 
-        if (nameRowTexts == null || nameRowTexts.Length == 0 || scoreRowTexts == null || scoreRowTexts.Length == 0)
+        if (ShouldReassignLeaderboardRows())
             AutoAssignRowsFromContainers();
+    }
+
+    bool ShouldReassignLeaderboardRows()
+    {
+        if (nameRowTexts == null || scoreRowTexts == null)
+            return true;
+        if (nameRowTexts.Length == 0 || scoreRowTexts.Length == 0)
+            return true;
+        if (nameRowTexts.Length != scoreRowTexts.Length)
+            return true;
+        for (int i = 0; i < nameRowTexts.Length; i++)
+        {
+            if (nameRowTexts[i] == null)
+                return true;
+        }
+
+        for (int i = 0; i < scoreRowTexts.Length; i++)
+        {
+            if (scoreRowTexts[i] == null)
+                return true;
+        }
+
+        return false;
     }
 
     void EnsureCategoryBar()
@@ -182,6 +206,9 @@ public class LeaderboardSceneHandler : MonoBehaviour
 
     static TMP_FontAsset FindFirstFont()
     {
+        TMP_FontAsset roboto = LifeSimUI.ButtonFont;
+        if (roboto != null)
+            return roboto;
         TMP_Text sample = FindFirstObjectByType<TMP_Text>();
         return sample != null ? sample.font : null;
     }
@@ -223,6 +250,13 @@ public class LeaderboardSceneHandler : MonoBehaviour
         SetStatus("Loading...");
         ClearRows();
 
+        if (nameRowTexts == null || scoreRowTexts == null || nameRowTexts.Length == 0 ||
+            nameRowTexts.Length != scoreRowTexts.Length)
+        {
+            SetStatus("Leaderboard rows not set up.");
+            yield break;
+        }
+
         NakamaLeaderboardService service = NakamaLeaderboardService.Instance;
         if (service == null)
         {
@@ -242,6 +276,8 @@ public class LeaderboardSceneHandler : MonoBehaviour
         {
             if (i >= records.Count)
                 break;
+            if (nameRowTexts[i] == null || scoreRowTexts[i] == null)
+                continue;
 
             NakamaLeaderboardService.LeaderboardRecord record = records[i];
             string displayName = NakamaLeaderboardService.ResolveDisplayName(record);
@@ -256,16 +292,22 @@ public class LeaderboardSceneHandler : MonoBehaviour
 
     void ClearRows()
     {
-        for (int i = 0; i < nameRowTexts.Length; i++)
+        if (nameRowTexts != null)
         {
-            if (nameRowTexts[i] != null)
-                nameRowTexts[i].text = "-";
+            for (int i = 0; i < nameRowTexts.Length; i++)
+            {
+                if (nameRowTexts[i] != null)
+                    nameRowTexts[i].text = "-";
+            }
         }
 
-        for (int i = 0; i < scoreRowTexts.Length; i++)
+        if (scoreRowTexts != null)
         {
-            if (scoreRowTexts[i] != null)
-                scoreRowTexts[i].text = "-";
+            for (int i = 0; i < scoreRowTexts.Length; i++)
+            {
+                if (scoreRowTexts[i] != null)
+                    scoreRowTexts[i].text = "-";
+            }
         }
     }
 
@@ -277,6 +319,15 @@ public class LeaderboardSceneHandler : MonoBehaviour
 
     void AutoAssignRowsFromContainers()
     {
+        // Prefer Row1..Row20 so each Name/Score pair comes from the same row (order matches Nakama rows).
+        List<TMP_Text> names = CollectNameScoreFromNumberedRows(out List<TMP_Text> scores);
+        if (names.Count > 0 && scores.Count == names.Count)
+        {
+            nameRowTexts = names.ToArray();
+            scoreRowTexts = scores.ToArray();
+            return;
+        }
+
         if (rowContainers == null || rowContainers.Length == 0)
         {
             List<RectTransform> foundRows = new List<RectTransform>();
@@ -298,7 +349,7 @@ public class LeaderboardSceneHandler : MonoBehaviour
                 {
                     foreach (RectTransform child in container.GetComponentsInChildren<RectTransform>(true))
                     {
-                        if (child != null && child.name.StartsWith("Row"))
+                        if (child != null && child.name.StartsWith("Row", StringComparison.Ordinal))
                             foundRows.Add(child);
                     }
                 }
@@ -307,17 +358,16 @@ public class LeaderboardSceneHandler : MonoBehaviour
             rowContainers = foundRows.ToArray();
         }
 
-        List<TMP_Text> names = new List<TMP_Text>();
-        List<TMP_Text> scores = new List<TMP_Text>();
-
+        names = new List<TMP_Text>();
+        scores = new List<TMP_Text>();
         foreach (RectTransform row in rowContainers)
         {
             if (row == null)
                 continue;
 
             TMP_Text[] texts = row.GetComponentsInChildren<TMP_Text>(true);
-            TMP_Text name = texts.FirstOrDefault(t => t.gameObject.name == "Name");
-            TMP_Text score = texts.FirstOrDefault(t => t.gameObject.name == "Score");
+            TMP_Text name = texts.FirstOrDefault(t => t != null && t.gameObject.name == "Name");
+            TMP_Text score = texts.FirstOrDefault(t => t != null && t.gameObject.name == "Score");
 
             if (name != null && score != null)
             {
@@ -329,12 +379,77 @@ public class LeaderboardSceneHandler : MonoBehaviour
         if (names.Count == 0 || scores.Count == 0)
         {
             TMP_Text[] allTexts = FindObjectsByType<TMP_Text>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
-            names = allTexts.Where(t => t != null && t.gameObject.name == "Name").Skip(1).ToList();
-            scores = allTexts.Where(t => t != null && t.gameObject.name == "Score").Skip(1).ToList();
+            IOrderedEnumerable<TMP_Text> orderedNames = allTexts
+                .Where(t => t != null && t.gameObject.name == "Name" && IsUnderDataRow(t.transform))
+                .OrderBy(t => RowSortOrder(t.transform.parent));
+            IOrderedEnumerable<TMP_Text> orderedScores = allTexts
+                .Where(t => t != null && t.gameObject.name == "Score" && IsUnderDataRow(t.transform))
+                .OrderBy(t => RowSortOrder(t.transform.parent));
+            names = orderedNames.ToList();
+            scores = orderedScores.ToList();
         }
 
         nameRowTexts = names.ToArray();
         scoreRowTexts = scores.ToArray();
+    }
+
+    static List<TMP_Text> CollectNameScoreFromNumberedRows(out List<TMP_Text> scoresOut)
+    {
+        var names = new List<TMP_Text>();
+        scoresOut = new List<TMP_Text>();
+        for (int i = 1; i <= 20; i++)
+        {
+            GameObject rowGo = GameObject.Find("Row" + i);
+            if (rowGo == null)
+                continue;
+
+            TMP_Text nameTxt = null;
+            TMP_Text scoreTxt = null;
+            foreach (TMP_Text t in rowGo.GetComponentsInChildren<TMP_Text>(true))
+            {
+                if (t == null)
+                    continue;
+                if (t.gameObject.name == "Name")
+                    nameTxt = t;
+                else if (t.gameObject.name == "Score")
+                    scoreTxt = t;
+            }
+
+            if (nameTxt != null && scoreTxt != null)
+            {
+                names.Add(nameTxt);
+                scoresOut.Add(scoreTxt);
+            }
+        }
+
+        return names;
+    }
+
+    static bool IsUnderDataRow(Transform t)
+    {
+        Transform row = t.parent;
+        return row != null && IsDataRowName(row.name);
+    }
+
+    static bool IsDataRowName(string rowName)
+    {
+        if (string.IsNullOrEmpty(rowName) || !rowName.StartsWith("Row", StringComparison.Ordinal) || rowName.Length <= 3)
+            return false;
+        string suffix = rowName.Substring(3);
+        foreach (char c in suffix)
+        {
+            if (!char.IsDigit(c))
+                return false;
+        }
+
+        return true;
+    }
+
+    static int RowSortOrder(Transform row)
+    {
+        if (row == null || !row.name.StartsWith("Row", StringComparison.Ordinal) || row.name.Length <= 3)
+            return 9999;
+        return int.TryParse(row.name.Substring(3), out int n) ? n : 9999;
     }
 
     /// <summary> Match row entry text to the rest of the UI: shared TMP font, semibold, slight tracking. </summary>

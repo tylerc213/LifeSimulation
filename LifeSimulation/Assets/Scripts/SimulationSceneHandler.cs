@@ -160,6 +160,13 @@ public class SimulationSceneHandler : MonoBehaviour
 
     static void CopyTmpFontFromScene(TextMeshProUGUI target)
     {
+        TMP_FontAsset f = LifeSimUI.ButtonFont;
+        if (f != null && target != null)
+        {
+            target.font = f;
+            return;
+        }
+
         TextMeshProUGUI sample = Object.FindFirstObjectByType<TextMeshProUGUI>();
         if (sample != null && target != null && sample.font != null)
             target.font = sample.font;

@@ -123,6 +123,9 @@ public static class WorldEditorShell
 
     static TMP_FontAsset GetSceneFont()
     {
+        TMP_FontAsset roboto = LifeSimUI.ButtonFont;
+        if (roboto != null)
+            return roboto;
         TextMeshProUGUI any = UnityEngine.Object.FindFirstObjectByType<TextMeshProUGUI>();
         return any != null ? any.font : null;
     }

@@ -56,6 +56,7 @@ public class ScoreSummaryHandler : MonoBehaviour
     {
         EnsureScoreSummaryLayout();
         AutoAssignUiReferences();
+        ApplyScoreSummaryElectronicHighwayFonts();
         RenderSummary();
     }
 
@@ -161,6 +162,40 @@ public class ScoreSummaryHandler : MonoBehaviour
         }
     }
 
+    /// <summary> Title, category lines, and name input (typed text + placeholder) use Electronic Highway Sign SDF. </summary>
+    void ApplyScoreSummaryElectronicHighwayFonts()
+    {
+        TMP_FontAsset font = LifeSimUI.ScoreSummaryCategoryFont;
+        if (font == null)
+            return;
+
+        Canvas canvas = FindFirstObjectByType<Canvas>();
+        Transform panel = canvas != null ? canvas.transform.Find("ScoreSummaryPanel") : null;
+        if (panel != null)
+        {
+            Transform title = panel.Find("Title");
+            if (title != null && title.TryGetComponent(out TMP_Text titleTmp))
+                titleTmp.font = font;
+        }
+
+        if (nameInput != null)
+        {
+            if (nameInput.textComponent != null)
+                nameInput.textComponent.font = font;
+            if (nameInput.placeholder is TMP_Text placeholderTmp)
+                placeholderTmp.font = font;
+        }
+
+        if (categoryLineTexts != null)
+        {
+            foreach (TMP_Text line in categoryLineTexts)
+            {
+                if (line != null)
+                    line.font = font;
+            }
+        }
+    }
+
     private void EnsureScoreSummaryLayout()
     {
         Canvas canvas = FindFirstObjectByType<Canvas>();
@@ -217,21 +252,25 @@ public class ScoreSummaryHandler : MonoBehaviour
             Destroy(child.gameObject);
         }
 
-        CreateLabel(panel, "Title", "Score Summary", new Vector2(0f, 300f), 52, TextAlignmentOptions.Center, Color.white);
+        TMP_FontAsset highway = LifeSimUI.ScoreSummaryCategoryFont;
+        CreateLabel(panel, "Title", "Score Summary", new Vector2(0f, 300f), 52, TextAlignmentOptions.Center, Color.white,
+            highway);
 
         for (int i = 0; i < LeaderboardBoards.DisplayNames.Length; i++)
         {
             float y = 180f - (i * 75f);
-            CreateLabel(panel, $"CategoryLine{i + 1}", $"{LeaderboardBoards.DisplayNames[i]} - 0", new Vector2(0f, y), 34, TextAlignmentOptions.Center, Color.white);
+            CreateLabel(panel, $"CategoryLine{i + 1}", $"{LeaderboardBoards.DisplayNames[i]} - 0", new Vector2(0f, y), 34,
+                TextAlignmentOptions.Center, Color.white, highway);
         }
 
-        nameInput = CreateNameInput(panel, new Vector2(0f, -230f));
+        nameInput = CreateNameInput(panel, new Vector2(0f, -230f), highway);
         CreateButton(panel, "SubmitButton", "Submit", new Vector2(-140f, -315f), SubmitAndQuit);
         CreateButton(panel, "QuitButton", "Quit", new Vector2(140f, -315f), QuitWithoutSubmitting);
         statusText = CreateLabel(panel, "StatusText", string.Empty, new Vector2(0f, -270f), 24, TextAlignmentOptions.Center, Color.white);
     }
 
-    private TMP_Text CreateLabel(Transform parent, string objectName, string text, Vector2 position, float fontSize, TextAlignmentOptions alignment, Color color)
+    private TMP_Text CreateLabel(Transform parent, string objectName, string text, Vector2 position, float fontSize,
+        TextAlignmentOptions alignment, Color color, TMP_FontAsset font = null)
     {
         GameObject labelObject = new GameObject(objectName, typeof(RectTransform), typeof(TextMeshProUGUI));
         labelObject.transform.SetParent(parent, false);
@@ -247,10 +286,12 @@ public class ScoreSummaryHandler : MonoBehaviour
         label.fontSize = fontSize;
         label.alignment = alignment;
         label.color = color;
+        if (font != null)
+            label.font = font;
         return label;
     }
 
-    private TMP_InputField CreateNameInput(Transform parent, Vector2 position)
+    private TMP_InputField CreateNameInput(Transform parent, Vector2 position, TMP_FontAsset font)
     {
         GameObject root = new GameObject("NameInput", typeof(RectTransform), typeof(Image), typeof(TMP_InputField));
         root.transform.SetParent(parent, false);
@@ -270,14 +311,14 @@ public class ScoreSummaryHandler : MonoBehaviour
         areaRect.offsetMin = new Vector2(12f, 8f);
         areaRect.offsetMax = new Vector2(-12f, -8f);
 
-        TextMeshProUGUI textComponent = CreateLabel(textArea.transform, "Text", string.Empty, Vector2.zero, 28, TextAlignmentOptions.Left, new Color32(40, 40, 40, 255)) as TextMeshProUGUI;
+        TextMeshProUGUI textComponent = CreateLabel(textArea.transform, "Text", string.Empty, Vector2.zero, 28, TextAlignmentOptions.Left, new Color32(40, 40, 40, 255), font) as TextMeshProUGUI;
         RectTransform textRect = textComponent.GetComponent<RectTransform>();
         textRect.anchorMin = new Vector2(0f, 0f);
         textRect.anchorMax = new Vector2(1f, 1f);
         textRect.offsetMin = Vector2.zero;
         textRect.offsetMax = Vector2.zero;
 
-        TextMeshProUGUI placeholder = CreateLabel(textArea.transform, "Placeholder", "Enter Name", Vector2.zero, 28, TextAlignmentOptions.Left, new Color32(120, 120, 120, 255)) as TextMeshProUGUI;
+        TextMeshProUGUI placeholder = CreateLabel(textArea.transform, "Placeholder", "Enter Name", Vector2.zero, 28, TextAlignmentOptions.Left, new Color32(120, 120, 120, 255), font) as TextMeshProUGUI;
         RectTransform placeholderRect = placeholder.GetComponent<RectTransform>();
         placeholderRect.anchorMin = new Vector2(0f, 0f);
         placeholderRect.anchorMax = new Vector2(1f, 1f);
@@ -302,11 +343,22 @@ public class ScoreSummaryHandler : MonoBehaviour
         buttonRect.sizeDelta = new Vector2(260f, 68f);
         buttonRect.anchoredPosition = position;
 
-        buttonObject.GetComponent<Image>().color = new Color32(27, 182, 176, 255);
+        Image buttonImage = buttonObject.GetComponent<Image>();
+        buttonImage.color = new Color32(27, 182, 176, 255);
+        Sprite rounded = LifeSimUI.BuiltinRoundedUISprite;
+        if (rounded != null)
+        {
+            buttonImage.sprite = rounded;
+            buttonImage.type = Image.Type.Sliced;
+        }
+
         Button button = buttonObject.GetComponent<Button>();
         button.onClick.AddListener(onClick);
 
         TMP_Text label = CreateLabel(buttonObject.transform, "Text (TMP)", labelText, Vector2.zero, 30, TextAlignmentOptions.Center, new Color32(45, 45, 45, 255));
+        TMP_FontAsset btnFont = LifeSimUI.ButtonFont;
+        if (btnFont != null)
+            label.font = btnFont;
         RectTransform labelRect = label.GetComponent<RectTransform>();
         labelRect.anchorMin = Vector2.zero;
         labelRect.anchorMax = Vector2.one;
