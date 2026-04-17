@@ -107,11 +107,12 @@ public class SimulationSceneHandler : MonoBehaviour
             return;
         }
 
-        Transform existing = editorPanel.transform.Find("QuitToSummaryButton");
+        Transform layoutRoot = WorldEditorShell.GetEditorPanelLayoutRoot(editorPanel.transform);
+        Transform existing = layoutRoot.Find("QuitToSummaryButton");
         if (existing == null)
-        {
-            existing = editorPanel.transform.Find("Quit");
-        }
+            existing = layoutRoot.Find("Quit");
+        if (existing == null)
+            existing = WorldEditorShell.FindDeepChild(editorPanel.transform, "Quit");
 
         if (existing != null)
         {
@@ -122,11 +123,13 @@ public class SimulationSceneHandler : MonoBehaviour
                 existingButton.onClick.RemoveAllListeners();
                 existingButton.onClick.AddListener(Quit);
             }
+
+            WorldEditorShell.ApplyStripStyleToEditorPanelToolbarButtons();
             return;
         }
 
         GameObject buttonObject = new GameObject("Quit", typeof(RectTransform), typeof(Image), typeof(Button));
-        buttonObject.transform.SetParent(editorPanel.transform, false);
+        buttonObject.transform.SetParent(layoutRoot, false);
         RectTransform rect = buttonObject.GetComponent<RectTransform>();
         rect.sizeDelta = new Vector2(160f, 30f);
         rect.anchorMin = new Vector2(0f, 0f);
@@ -134,7 +137,7 @@ public class SimulationSceneHandler : MonoBehaviour
         rect.anchoredPosition = new Vector2(0f, -200f);
 
         Image image = buttonObject.GetComponent<Image>();
-        image.color = new Color32(27, 182, 176, 255);
+        image.type = Image.Type.Sliced;
 
         Button button = buttonObject.GetComponent<Button>();
         button.onClick.AddListener(Quit);
@@ -150,8 +153,16 @@ public class SimulationSceneHandler : MonoBehaviour
         TextMeshProUGUI label = labelObject.GetComponent<TextMeshProUGUI>();
         label.text = "Quit";
         label.alignment = TextAlignmentOptions.Center;
-        label.fontSize = 24;
-        label.color = new Color32(50, 50, 50, 255);
+        CopyTmpFontFromScene(label);
+
+        WorldEditorShell.ApplyStripStyleToEditorPanelToolbarButtons();
+    }
+
+    static void CopyTmpFontFromScene(TextMeshProUGUI target)
+    {
+        TextMeshProUGUI sample = Object.FindFirstObjectByType<TextMeshProUGUI>();
+        if (sample != null && target != null && sample.font != null)
+            target.font = sample.font;
     }
 
     private void AutoAssignReferences()

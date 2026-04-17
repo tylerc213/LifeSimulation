@@ -64,6 +64,8 @@ public class UIHandler : MonoBehaviour
         bool started = mapGenerator.IsMapReady && mapGenerator.HasSimulationStarted;
         UpdateSpawnButtonsVisibility(started);
         SetGenerateMapButtonVisible(!started);
+        if (started && EditorPanelController.Instance != null)
+            EditorPanelController.Instance.NotifySimulationStarted();
     }
 
     private void AutoAssignSpawnButtonsIfNeeded()

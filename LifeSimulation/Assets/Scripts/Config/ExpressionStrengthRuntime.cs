@@ -1,10 +1,19 @@
 // -----------------------------------------------------------------------------
-// Runtime expression strength multipliers (updated by SimulationSettingsStore).
-// Genetics read these when applying traits.
+// Project:		EXTENDED LIFE SIMULATION CAPSTONE ASSIGNMENT
+// Item:		Expression strength runtime
+// Requirement:	Configuration
+// Author:		Benjamin Jones
+// Date:		04/14/2026
+// Version:		0.0.0
+//
+// Description:
+//    Publishes simple global knobs for how strongly traits express, derived from
+//    settings so genetics can stay lightweight while still honoring designer tuning.
 // -----------------------------------------------------------------------------
 
 using UnityEngine;
 
+/// <summary> Global expression multipliers; values follow <see cref="SimulationSettingsValidator"/>. </summary>
 public static class ExpressionStrengthRuntime
 {
     public static float PlantPrimary { get; private set; } = 1f;
@@ -23,23 +32,23 @@ public static class ExpressionStrengthRuntime
     {
         if (s?.plant?.expression != null)
         {
-            PlantPrimary = Mathf.Clamp(s.plant.expression.primaryStats, 0f, 3f);
-            PlantSecondary = Mathf.Clamp(s.plant.expression.secondaryTraits, 0f, 3f);
-            PlantDefense = Mathf.Clamp(s.plant.expression.defenseTraits, 0f, 3f);
+            PlantPrimary = s.plant.expression.primaryStats;
+            PlantSecondary = s.plant.expression.secondaryTraits;
+            PlantDefense = s.plant.expression.defenseTraits;
         }
 
         if (s?.grazer?.expression != null)
         {
-            GrazerStat = Mathf.Clamp(s.grazer.expression.statTraits, 0f, 3f);
-            GrazerRare = Mathf.Clamp(s.grazer.expression.rareTraits, 0f, 3f);
-            GrazerPack = Mathf.Clamp(s.grazer.expression.packTraits, 0f, 3f);
+            GrazerStat = s.grazer.expression.statTraits;
+            GrazerRare = s.grazer.expression.rareTraits;
+            GrazerPack = s.grazer.expression.packTraits;
         }
 
         if (s?.predator?.expression != null)
         {
-            PredatorStat = Mathf.Clamp(s.predator.expression.statTraits, 0f, 3f);
-            PredatorRare = Mathf.Clamp(s.predator.expression.rareTraits, 0f, 3f);
-            PredatorApex = Mathf.Clamp(s.predator.expression.apexTraits, 0f, 3f);
+            PredatorStat = s.predator.expression.statTraits;
+            PredatorRare = s.predator.expression.rareTraits;
+            PredatorApex = s.predator.expression.apexTraits;
         }
     }
 }
