@@ -12,46 +12,28 @@
 // -----------------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.Tilemaps;
 
 /// <summary> Handles procedural tile placement and initial entity spawning </summary>
 public class MapGenerator2D : MonoBehaviour
 {
-    public static MapGenerator2D Instance { get; private set; }
-
-    /// <summary> True after the first successful <see cref="GenerateMap"/> in this session (tiles + obstacles ready). </summary>
-    public static bool IsSimulationRunActive =>
-        Instance != null && Instance.IsMapReady && Instance.HasSimulationStarted;
-
-    /// <summary> Fired when <see cref="GenerateMap"/> completes (tiles + obstacles). Logging should start here, not on scene load. </summary>
-    public static event Action OnMapGenerated;
-
     [Header("Tilemap References")]
     public Tilemap squareTilemap;
     public TileBase baseSquareTile;
 
-    [Header("Obstacle Generation (rocks)")]
+    [Header("Obstacle Generation")]
     public GameObject obstaclePrefab;
-    [Tooltip("Probability per tile of attempting a rock cluster. Keep low on large maps.")]
-    [Range(0f, 0.03f)]
-    [FormerlySerializedAs("obstacleSpawnChance")]
-    public float rockSpawnChance = 0.01f;
-    public int obstacleMinCluster = 1;
-    public int obstacleMaxCluster = 2;
-
-    [Header("Terrain coloring (Perlin — water vs land)")]
-    [Tooltip("Feature size for Perlin noise.")]
-    public float perlinScale = 0.1f;
-    [Tooltip("0 = least water, 1 = most water (blue tiles).")]
     [Range(0f, 1f)]
-    public float waterSpawnRate = 0.5f;
+    public float obstacleSpawnChance = 0.08f;   // probability per tile of spawning an obstacle
+    public int obstacleMinCluster = 1;        // min obstacles per cluster
+    public int obstacleMaxCluster = 3;        // max obstacles per cluster
 
     [Header("Initial Population")]
-    public int startPlants = 30;
-    public int startGrazers = 15;
-    public int startPredators = 4;
+    public int startPlants = 15;
+    public int startGrazers = 8;
+    public int startPredators = 2;
 
     // Stores world-space centers of all non-obstacle tiles so we can pick
     // random valid spawn positions without landing inside an obstacle.
@@ -62,31 +44,25 @@ public class MapGenerator2D : MonoBehaviour
     /// <summary> True once the user has generated at least one map in this scene session.</summary>
     public bool HasSimulationStarted { get; private set; }
 
-    void Awake()
-    {
-        if (Instance != null && Instance != this)
-        {
-            Debug.LogWarning("MapGenerator2D: multiple instances — only one expected.");
-            return;
-        }
-
-        Instance = this;
-    }
-
-    void OnDestroy()
-    {
-        if (Instance == this)
-            Instance = null;
-    }
-
-    /// <summary> Executes map generation logic then spawns initial entities </summary>
-    /// <param name="seed"> String used to seed the RNG </param>
-    /// <param name="width"> Width of map in tiles </param>
-    /// <param name="height"> Height of map in tiles </param>
-    public void GenerateMap(string seed, int width, int height)
+    /// <summary> Executes generation of selected tier of sim map </summary>
+    /// <remarks> Uses SetTilesBlock for performance on large maps </remarks>
+    public void GenerateMap()
     {
         IsMapReady = false;
         HasSimulationStarted = false;
+
+        // Determine dimensions from central spectator settings
+        int sizeDim = 500;
+        var camHandler = FindFirstObjectByType<CameraHandler>();
+        if (camHandler != null)
+        {
+            switch (camHandler.selectedSize)
+            {
+                case CameraHandler.MapSize.Small: sizeDim = 150; break;
+                case CameraHandler.MapSize.Medium: sizeDim = 300; break;
+                case CameraHandler.MapSize.Large: sizeDim = 500; break;
+            }
+        }
 
         // Wipe existing data to prepare for new generation
         squareTilemap.ClearAllTiles();
@@ -98,29 +74,40 @@ public class MapGenerator2D : MonoBehaviour
         DestroyTagged("Predator");
         DestroyTagged("Obstacle");
 
-        // Convert string hash to initialize random state
-        UnityEngine.Random.InitState(seed.GetHashCode());
+        // Initialize unique seed for sim run
+        UnityEngine.Random.InitState((int)DateTime.Now.Ticks);
+        float offsetX = UnityEngine.Random.Range(0f, 99999f);
+        float offsetY = UnityEngine.Random.Range(0f, 99999f);
 
-        // ── Tile placement ────────────────────────────────────────────────────
-        for (int x = 0; x < width; x++)
+        // calculate offset for centering
+        int halfDim = sizeDim / 2;
+        Vector3Int startPos = new Vector3Int(-halfDim, -halfDim, 0);
+        Vector3Int size = new Vector3Int(sizeDim, sizeDim, 1);
+
+        // Batch set tiles to avoid CPU overhead
+        BoundsInt bounds = new BoundsInt(startPos, size);
+        TileBase[] tileArray = new TileBase[sizeDim * sizeDim];
+
+        for (int i = 0; i < tileArray.Length; i++) tileArray[i] = baseSquareTile;
+        squareTilemap.SetTilesBlock(bounds, tileArray);
+
+        // Apply visual variety and track valid spawns
+        for (int x = -halfDim; x < halfDim; x++)
         {
-            for (int y = 0; y < height; y++)
+            for (int y = -halfDim; y < halfDim; y++)
             {
                 Vector3Int tilePos = new Vector3Int(x, y, 0);
-                squareTilemap.SetTile(tilePos, baseSquareTile);
 
-                float scale = Mathf.Max(perlinScale, 0.001f);
-                float perlin = Mathf.PerlinNoise(x * scale, y * scale);
-                float waterThresholdEffective = Mathf.Lerp(0.9f, 0.5f, Mathf.Clamp01(waterSpawnRate));
-                Color tileColor = (perlin > waterThresholdEffective)
-                    ? new Color(0.1f, 0.2f, 0.5f)
-                    : Color.tan;
+                // Determine tile color via noise
+                float perlin = Mathf.PerlinNoise((x + halfDim) * 0.1f + offsetX, (y + halfDim) * 0.1f + offsetY);
+                Color tileColor = (perlin > 0.67f) ? new Color(0.72f, 0.61f, 0.45f) : Color.tan;
 
+                // Unlock tile flags to allow coloring
                 squareTilemap.SetTileFlags(tilePos, TileFlags.None);
                 squareTilemap.SetColor(tilePos, tileColor);
 
-                // Track the world-space center of this tile for later spawning
-                _openTiles.Add(squareTilemap.GetCellCenterWorld(tilePos));
+                // Add cell center to walkable list
+                _openTiles.Add(new Vector3(x + 0.5f, y + 0.5f, 0));
             }
         }
 
@@ -131,21 +118,29 @@ public class MapGenerator2D : MonoBehaviour
         IsMapReady = true;
         HasSimulationStarted = true;
 
-        OnMapGenerated?.Invoke();
-
         // ── Initial entity spawning ───────────────────────────────────────────
         // Use Invoke so EcosystemManager and BoundaryManager have had a frame
         // to initialise before we ask them to spawn anything.
         Invoke(nameof(SpawnInitialEntities), 0.1f);
     }
 
+    /// <summary> Random walkable tile center (excludes obstacle cells). Use for UI button spawns.</summary>
+    public bool TryGetRandomOpenTileWorldPosition(out Vector3 worldCenter)
+    {
+        worldCenter = default;
+        if (!IsMapReady || _openTiles.Count == 0)
+        {
+            return false;
+        }
+
+        worldCenter = _openTiles[UnityEngine.Random.Range(0, _openTiles.Count)];
+        return true;
+    }
+
     // ── Obstacle Spawning ─────────────────────────────────────────────────────
 
     private void SpawnObstacles()
     {
-        if (rockSpawnChance <= 0f)
-            return;
-
         // Work on a shuffled copy so clusters land in random positions
         List<Vector3> shuffled = new List<Vector3>(_openTiles);
         Shuffle(shuffled);
@@ -156,7 +151,7 @@ public class MapGenerator2D : MonoBehaviour
         foreach (Vector3 tileCenter in shuffled)
         {
             if (occupied.Contains(tileCenter)) continue;
-            if (UnityEngine.Random.value > rockSpawnChance) continue;
+            if (UnityEngine.Random.value > obstacleSpawnChance) continue;
 
             int clusterSize = UnityEngine.Random.Range(obstacleMinCluster, obstacleMaxCluster + 1);
             PlaceObstacleCluster(tileCenter, clusterSize, occupied);

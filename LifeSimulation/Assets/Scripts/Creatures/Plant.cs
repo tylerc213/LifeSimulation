@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 
 /// <summary>
@@ -48,7 +48,26 @@ public class Plant : MonoBehaviour
 
     private void Grow()
     {
-        _age = Mathf.Min(_age + Time.deltaTime, growthDuration);
+        if (EnvironmentHandler.Instance == null) return;
+
+        // Requirement 2 & 4: Growth is now a product of Environment * Genetics
+        float sunlight = EnvironmentHandler.Instance.SunlightIntensity;
+        float seasonMult = EnvironmentHandler.Instance.GetSeasonalGrowthMultiplier();
+
+        // Use the Genetics to determine how efficient this plant is at photosynthesizing
+        float efficiency = _genetics != null ? _genetics.PhotosynthesisEfficiency : 1f;
+
+        // If the plant is Resilient, it ignores the harsh 0.2x Winter penalty
+        if (_genetics != null && _genetics.IsResilient && seasonMult < 0.5f)
+        {
+            seasonMult = 0.5f;
+        }
+
+        // Calculate actual growth for this frame
+        // Formula: Δt * Sunlight * Season * GeneticEfficiency
+        float growthDelta = Time.deltaTime * sunlight * seasonMult * efficiency;
+
+        _age = Mathf.Min(_age + growthDelta, growthDuration);
         float t = _age / growthDuration;
         float s = Mathf.Lerp(minScale, maxScale, t);
         transform.localScale = Vector3.one * s;
@@ -56,11 +75,11 @@ public class Plant : MonoBehaviour
 
     private void TrySpread()
     {
-        if (!MapGenerator2D.IsSimulationRunActive)
-            return;
         if (!IsFullyGrown) return;
 
-        _spreadTimer += Time.deltaTime;
+        // Apply longer time period during off seasons to plants
+        float seasonMult = EnvironmentHandler.Instance.GetSeasonalGrowthMultiplier();
+        _spreadTimer += Time.deltaTime * seasonMult;
         if (_spreadTimer < spreadInterval) return;
         _spreadTimer = 0f;
 
