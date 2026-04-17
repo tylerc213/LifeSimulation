@@ -22,6 +22,7 @@ public class PlantGenetics : MonoBehaviour
     public float TastyMultiplier { get; private set; } = 1f;  // >1 = more likely eaten
     public float BitterMultiplier { get; private set; } = 1f;  // <1 = less likely eaten
     public bool IsResilient { get; private set; } = false;
+    public float PhotosynthesisEfficiency { get; private set; } = 1f;
 
     private Plant _plant;
     private SpriteRenderer _sr;
@@ -51,6 +52,7 @@ public class PlantGenetics : MonoBehaviour
         {
             int leafLevel = (leafGene.AlleleA ? 1 : 0) + (leafGene.AlleleB ? 1 : 0); // 0,1,2
             NutritionMultiplier = 0.7f + leafLevel * 0.3f;   // small=0.7, med=1.0, large=1.3
+            PhotosynthesisEfficiency = 0.8f + leafLevel * 0.3f;
             float scaleBonus = 1f + leafLevel * 0.15f;
             transform.localScale *= scaleBonus;
 
@@ -91,6 +93,7 @@ public class PlantGenetics : MonoBehaviour
         float s = ExpressionStrengthRuntime.PlantSecondary;
         float d = ExpressionStrengthRuntime.PlantDefense;
         NutritionMultiplier *= p;
+        PhotosynthesisEfficiency *= p;
         if (Genome.IsExpressed(TraitType.Tasty))
             TastyMultiplier = 1f + (TastyMultiplier - 1f) * s;
         else

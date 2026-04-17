@@ -48,7 +48,24 @@ public class Plant : MonoBehaviour
 
     private void Grow()
     {
-        _age = Mathf.Min(_age + Time.deltaTime, growthDuration);
+        float growthDelta;
+        if (EnvironmentHandler.Instance != null)
+        {
+            float sunlight = EnvironmentHandler.Instance.SunlightIntensity;
+            float seasonMult = EnvironmentHandler.Instance.GetSeasonalGrowthMultiplier();
+            float efficiency = _genetics != null ? _genetics.PhotosynthesisEfficiency : 1f;
+
+            if (_genetics != null && _genetics.IsResilient && seasonMult < 0.5f)
+                seasonMult = 0.5f;
+
+            growthDelta = Time.deltaTime * sunlight * seasonMult * efficiency;
+        }
+        else
+        {
+            growthDelta = Time.deltaTime;
+        }
+
+        _age = Mathf.Min(_age + growthDelta, growthDuration);
         float t = _age / growthDuration;
         float s = Mathf.Lerp(minScale, maxScale, t);
         transform.localScale = Vector3.one * s;
@@ -60,7 +77,10 @@ public class Plant : MonoBehaviour
             return;
         if (!IsFullyGrown) return;
 
-        _spreadTimer += Time.deltaTime;
+        float seasonMult = EnvironmentHandler.Instance != null
+            ? EnvironmentHandler.Instance.GetSeasonalGrowthMultiplier()
+            : 1f;
+        _spreadTimer += Time.deltaTime * seasonMult;
         if (_spreadTimer < spreadInterval) return;
         _spreadTimer = 0f;
 
