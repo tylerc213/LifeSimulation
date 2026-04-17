@@ -1,5 +1,14 @@
 // -----------------------------------------------------------------------------
-// Builds world editor settings UI at runtime on the Simulation scene Canvas.
+// Project:		EXTENDED LIFE SIMULATION CAPSTONE ASSIGNMENT
+// Item:		World editor UI build
+// Requirement:	Simulation user interface
+// Author:		Benjamin Jones
+// Date:		04/14/2026
+// Version:		0.0.0
+//
+// Description:
+//    Materializes the in-scene editor shell (pause, settings entry, popouts) at
+//    runtime so the Simulation scene stays sparse in the editor yet still ships a full control surface.
 // -----------------------------------------------------------------------------
 
 using TMPro;

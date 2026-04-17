@@ -1,6 +1,14 @@
 // -----------------------------------------------------------------------------
-// Serializable simulation settings (v1 schema). Used by SimulationSettingsStore
-// and ConfigHandler import/export.
+// Project:		EXTENDED LIFE SIMULATION CAPSTONE ASSIGNMENT
+// Item:		Simulation settings model
+// Requirement:	Configuration
+// Author:		Benjamin Jones
+// Date:		04/14/2026
+// Version:		0.0.0
+//
+// Description:
+//    The portable definition of this run's world: what JSON, the config scene,
+//    and the in-sim editor all read and write so behavior stays one contract.
 // -----------------------------------------------------------------------------
 
 using System;

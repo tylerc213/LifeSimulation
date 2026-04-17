@@ -1,6 +1,14 @@
 // -----------------------------------------------------------------------------
-// Central UI tokens for Life Simulation (uGUI + TMP). Optional asset:
-// place an instance at Resources/LifeSimUITheme to override defaults.
+// Project:		EXTENDED LIFE SIMULATION CAPSTONE ASSIGNMENT
+// Item:		UI theme asset
+// Requirement:	Simulation user interface
+// Author:		Benjamin Jones
+// Date:		04/14/2026
+// Version:		0.0.0
+//
+// Description:
+//    Holds the simulation UI visual vocabulary (colors, type, spacing); an
+//    optional asset overrides defaults so the whole editor retunes from one place.
 // -----------------------------------------------------------------------------
 
 using UnityEngine;

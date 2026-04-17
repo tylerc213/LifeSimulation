@@ -1,5 +1,14 @@
 // -----------------------------------------------------------------------------
-// Pause / Play toggle for the simulation strip. Updates label text.
+// Project:		EXTENDED LIFE SIMULATION CAPSTONE ASSIGNMENT
+// Item:		Pause / resume control
+// Requirement:	Simulation user interface
+// Author:		Benjamin Jones
+// Date:		04/14/2026
+// Version:		0.0.0
+//
+// Description:
+//    Primary affordance for freezing and resuming the sim clock; label tracks
+//    state so the strip always matches what the world is doing.
 // -----------------------------------------------------------------------------
 
 using TMPro;

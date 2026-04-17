@@ -1,5 +1,14 @@
 // -----------------------------------------------------------------------------
-// Loads/saves simulation settings JSON and applies to runtime systems.
+// Project:		EXTENDED LIFE SIMULATION CAPSTONE ASSIGNMENT
+// Item:		Settings store and apply
+// Requirement:	Configuration
+// Author:		Benjamin Jones
+// Date:		04/14/2026
+// Version:		0.0.0
+//
+// Description:
+//    Owns the live settings document: load/save JSON, then fan changes out so
+//    map generation, creatures, speed, and UI stay aligned with what the player configured.
 // -----------------------------------------------------------------------------
 
 using System;

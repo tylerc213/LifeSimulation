@@ -1,6 +1,14 @@
 // -----------------------------------------------------------------------------
-// Category settings popout: sliders bound to SimulationSettingsStore.
-// Does not pause the simulation (no timeScale changes).
+// Project:		EXTENDED LIFE SIMULATION CAPSTONE ASSIGNMENT
+// Item:		Settings modal (world editor)
+// Requirement:	Simulation user interface
+// Author:		Benjamin Jones
+// Date:		04/14/2026
+// Version:		0.0.0
+//
+// Description:
+//    Lets the player reshape the live simulation (speed, terrain, populations,
+//    traits) from category panels tied to the shared settings store without leaving the scene.
 // -----------------------------------------------------------------------------
 
 using System;

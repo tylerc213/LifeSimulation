@@ -1,5 +1,14 @@
 // -----------------------------------------------------------------------------
-// Applies LifeSimUITheme visuals to strip buttons and shared Button+Image+TMP.
+// Project:		EXTENDED LIFE SIMULATION CAPSTONE ASSIGNMENT
+// Item:		Button / strip styling
+// Requirement:	Simulation user interface
+// Author:		Benjamin Jones
+// Date:		04/14/2026
+// Version:		0.0.0
+//
+// Description:
+//    Maps the shared theme onto runtime-built buttons so toolbar and modal
+//    controls read as one product rather than one-off styling at each call site.
 // -----------------------------------------------------------------------------
 
 using TMPro;

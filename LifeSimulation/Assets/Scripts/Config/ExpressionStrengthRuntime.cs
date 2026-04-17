@@ -1,6 +1,14 @@
 // -----------------------------------------------------------------------------
-// Runtime expression strength multipliers (updated by SimulationSettingsStore).
-// Genetics read these when applying traits.
+// Project:		EXTENDED LIFE SIMULATION CAPSTONE ASSIGNMENT
+// Item:		Expression strength runtime
+// Requirement:	Configuration
+// Author:		Benjamin Jones
+// Date:		04/14/2026
+// Version:		0.0.0
+//
+// Description:
+//    Publishes simple global knobs for how strongly traits express, derived from
+//    settings so genetics can stay lightweight while still honoring designer tuning.
 // -----------------------------------------------------------------------------
 
 using UnityEngine;

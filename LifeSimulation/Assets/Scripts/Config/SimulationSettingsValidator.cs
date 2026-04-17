@@ -1,5 +1,14 @@
 // -----------------------------------------------------------------------------
-// Validates SimulationSettings after JSON parse and clamps cross-field rules.
+// Project:		EXTENDED LIFE SIMULATION CAPSTONE ASSIGNMENT
+// Item:		Settings validation
+// Requirement:	Configuration
+// Author:		Benjamin Jones
+// Date:		04/14/2026
+// Version:		0.0.0
+//
+// Description:
+//    Normalizes and bounds settings after parse or edit so the sim never runs on
+//    broken numbers or outdated JSON shapes; everything downstream sees a safe snapshot.
 // -----------------------------------------------------------------------------
 
 using UnityEngine;
