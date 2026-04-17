@@ -87,11 +87,11 @@ public class PredatorExpressionSettings
 [Serializable]
 public class PlantSettingsBlock
 {
-    [Min(0)] public int startingPopulation = 30;
+    [Min(0)] public int startingPopulation = 10;
     [Min(0)] public int maxPopulation = 200;
     public bool replenishEnabled = true;
     [Min(0.1f)] public float replenishIntervalSeconds = 15f;
-    [Min(0)] public int replenishAmount = 10;
+    [Min(0)] public int replenishAmount = 3;
     public PlantExpressionSettings expression = new PlantExpressionSettings();
 }
 
@@ -101,18 +101,18 @@ public class GrazerSettingsBlock
     [Min(0)] public int startingPopulation = 15;
     [Min(0)] public int maxPopulation = 150;
     public bool replenishEnabled = false;
-    [Min(0.1f)] public float replenishIntervalSeconds = 8f;
-    [Min(0)] public int replenishAmount = 1;
+    [Min(0.1f)] public float replenishIntervalSeconds = 2f;
+    [Min(0)] public int replenishAmount = 6;
     public GrazerExpressionSettings expression = new GrazerExpressionSettings();
 }
 
 [Serializable]
 public class PredatorSettingsBlock
 {
-    [Min(0)] public int startingPopulation = 4;
-    [Min(0)] public int maxPopulation = 80;
+    [Min(0)] public int startingPopulation = 8;
+    [Min(0)] public int maxPopulation = 200;
     public bool replenishEnabled = true;
-    [Min(0.1f)] public float replenishIntervalSeconds = 15f;
-    [Min(0)] public int replenishAmount = 1;
+    [Min(0.1f)] public float replenishIntervalSeconds = 4f;
+    [Min(0)] public int replenishAmount = 12;
     public PredatorExpressionSettings expression = new PredatorExpressionSettings();
 }

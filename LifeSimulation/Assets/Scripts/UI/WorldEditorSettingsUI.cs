@@ -15,6 +15,7 @@ using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using static SimulationSettingsValidator.Limits;
 
 /// <summary> In-scene settings modal bound to <see cref="SimulationSettingsStore"/>. </summary>
 public class WorldEditorSettingsUI : MonoBehaviour
@@ -151,77 +152,82 @@ public class WorldEditorSettingsUI : MonoBehaviour
 
     void BuildGame(Transform parent, TMP_FontAsset font, LifeSimUITheme theme)
     {
-        AddSlider(parent, font, theme, "Simulation speed", 0f, 10f, false,
+        AddSlider(parent, font, theme, "Simulation speed", GameSimulationSpeedMin, GameSimulationSpeedMax, false,
             s => s.game.simulationSpeed, (s, v) => s.game.simulationSpeed = v);
-        AddSlider(parent, font, theme, "Rock spawn rate", 0f, 0.03f, false,
+        AddSlider(parent, font, theme, "Rock spawn rate", TerrainRockSpawnMin, TerrainRockSpawnMax, false,
             s => s.terrain.rockSpawnRate, (s, v) => s.terrain.rockSpawnRate = v);
-        AddSlider(parent, font, theme, "Obstacle cluster min", 1f, 4f, true,
+        AddSlider(parent, font, theme, "Obstacle cluster min", TerrainObstacleMinClusterMin, TerrainObstacleMinClusterMax,
+            true,
             s => s.terrain.obstacleMinCluster, (s, v) => s.terrain.obstacleMinCluster = Mathf.RoundToInt(v));
-        AddSlider(parent, font, theme, "Obstacle cluster max", 1f, 6f, true,
+        AddSlider(parent, font, theme, "Obstacle cluster max", TerrainObstacleMaxClusterMin, TerrainObstacleMaxClusterMax,
+            true,
             s => s.terrain.obstacleMaxCluster, (s, v) => s.terrain.obstacleMaxCluster = Mathf.RoundToInt(v));
-        AddSlider(parent, font, theme, "Terrain feature scale", 0.02f, 0.3f, false,
+        AddSlider(parent, font, theme, "Terrain feature scale", TerrainPerlinScaleMin, TerrainPerlinScaleMax, false,
             s => s.terrain.perlinScale, (s, v) => s.terrain.perlinScale = v);
-        AddSlider(parent, font, theme, "Water spawn rate", 0f, 1f, false,
+        AddSlider(parent, font, theme, "Water spawn rate", TerrainWaterSpawnMin, TerrainWaterSpawnMax, false,
             s => s.terrain.waterSpawnRate, (s, v) => s.terrain.waterSpawnRate = v);
     }
 
     void BuildPlant(Transform parent, TMP_FontAsset font, LifeSimUITheme theme)
     {
-        AddSlider(parent, font, theme, "Starting population", 0f, 2000f, true,
+        AddSlider(parent, font, theme, "Starting population", PlantStartingPopulationMin, PlantStartingPopulationMax,
+            true,
             s => s.plant.startingPopulation, (s, v) => s.plant.startingPopulation = Mathf.RoundToInt(v));
-        AddSlider(parent, font, theme, "Max population", 0f, 5000f, true,
+        AddSlider(parent, font, theme, "Max population", PlantMaxPopulationMin, PlantMaxPopulationMax, true,
             s => s.plant.maxPopulation, (s, v) => s.plant.maxPopulation = Mathf.RoundToInt(v));
         AddToggle(parent, font, theme, "Replenish enabled",
             s => s.plant.replenishEnabled, (s, v) => s.plant.replenishEnabled = v);
-        AddSlider(parent, font, theme, "Replenish interval (s)", 0.25f, 120f, false,
+        AddSlider(parent, font, theme, "Replenish interval (s)", ReplenishIntervalMin, ReplenishIntervalMax, false,
             s => s.plant.replenishIntervalSeconds, (s, v) => s.plant.replenishIntervalSeconds = v);
-        AddSlider(parent, font, theme, "Replenish amount (per tick)", 0f, 500f, true,
+        AddSlider(parent, font, theme, "Replenish amount (per tick)", 0f, PlantReplenishAmountMax, true,
             s => s.plant.replenishAmount, (s, v) => s.plant.replenishAmount = Mathf.RoundToInt(v));
-        AddSlider(parent, font, theme, "Expression: primary / leaf", 0f, 3f, false,
+        AddSlider(parent, font, theme, "Expression: primary / leaf", ExpressionTraitMin, ExpressionTraitMax, false,
             s => s.plant.expression.primaryStats, (s, v) => s.plant.expression.primaryStats = v);
-        AddSlider(parent, font, theme, "Expression: secondary", 0f, 3f, false,
+        AddSlider(parent, font, theme, "Expression: secondary", ExpressionTraitMin, ExpressionTraitMax, false,
             s => s.plant.expression.secondaryTraits, (s, v) => s.plant.expression.secondaryTraits = v);
-        AddSlider(parent, font, theme, "Expression: defense", 0f, 3f, false,
+        AddSlider(parent, font, theme, "Expression: defense", ExpressionTraitMin, ExpressionTraitMax, false,
             s => s.plant.expression.defenseTraits, (s, v) => s.plant.expression.defenseTraits = v);
     }
 
     void BuildGrazer(Transform parent, TMP_FontAsset font, LifeSimUITheme theme)
     {
-        AddSlider(parent, font, theme, "Starting population", 0f, 2000f, true,
+        AddSlider(parent, font, theme, "Starting population", GrazerStartingPopulationMin, GrazerStartingPopulationMax,
+            true,
             s => s.grazer.startingPopulation, (s, v) => s.grazer.startingPopulation = Mathf.RoundToInt(v));
-        AddSlider(parent, font, theme, "Max population", 0f, 3000f, true,
+        AddSlider(parent, font, theme, "Max population", GrazerMaxPopulationMin, GrazerMaxPopulationMax, true,
             s => s.grazer.maxPopulation, (s, v) => s.grazer.maxPopulation = Mathf.RoundToInt(v));
         AddToggle(parent, font, theme, "Replenish enabled",
             s => s.grazer.replenishEnabled, (s, v) => s.grazer.replenishEnabled = v);
-        AddSlider(parent, font, theme, "Replenish interval (s)", 0.25f, 120f, false,
+        AddSlider(parent, font, theme, "Replenish interval (s)", ReplenishIntervalMin, ReplenishIntervalMax, false,
             s => s.grazer.replenishIntervalSeconds, (s, v) => s.grazer.replenishIntervalSeconds = v);
-        AddSlider(parent, font, theme, "Replenish amount (per tick)", 0f, 200f, true,
+        AddSlider(parent, font, theme, "Replenish amount (per tick)", 0f, GrazerReplenishAmountMax, true,
             s => s.grazer.replenishAmount, (s, v) => s.grazer.replenishAmount = Mathf.RoundToInt(v));
-        AddSlider(parent, font, theme, "Expression: stat traits", 0f, 3f, false,
+        AddSlider(parent, font, theme, "Expression: stat traits", ExpressionTraitMin, ExpressionTraitMax, false,
             s => s.grazer.expression.statTraits, (s, v) => s.grazer.expression.statTraits = v);
-        AddSlider(parent, font, theme, "Expression: rare traits", 0f, 3f, false,
+        AddSlider(parent, font, theme, "Expression: rare traits", ExpressionTraitMin, ExpressionTraitMax, false,
             s => s.grazer.expression.rareTraits, (s, v) => s.grazer.expression.rareTraits = v);
-        AddSlider(parent, font, theme, "Expression: pack / leader", 0f, 3f, false,
+        AddSlider(parent, font, theme, "Expression: pack / leader", ExpressionTraitMin, ExpressionTraitMax, false,
             s => s.grazer.expression.packTraits, (s, v) => s.grazer.expression.packTraits = v);
     }
 
     void BuildPredator(Transform parent, TMP_FontAsset font, LifeSimUITheme theme)
     {
-        AddSlider(parent, font, theme, "Starting population", 0f, 1000f, true,
+        AddSlider(parent, font, theme, "Starting population", PredatorStartingPopulationMin, PredatorStartingPopulationMax,
+            true,
             s => s.predator.startingPopulation, (s, v) => s.predator.startingPopulation = Mathf.RoundToInt(v));
-        AddSlider(parent, font, theme, "Max population", 0f, 2000f, true,
+        AddSlider(parent, font, theme, "Max population", PredatorMaxPopulationMin, PredatorMaxPopulationMax, true,
             s => s.predator.maxPopulation, (s, v) => s.predator.maxPopulation = Mathf.RoundToInt(v));
         AddToggle(parent, font, theme, "Replenish enabled",
             s => s.predator.replenishEnabled, (s, v) => s.predator.replenishEnabled = v);
-        AddSlider(parent, font, theme, "Replenish interval (s)", 0.25f, 120f, false,
+        AddSlider(parent, font, theme, "Replenish interval (s)", ReplenishIntervalMin, ReplenishIntervalMax, false,
             s => s.predator.replenishIntervalSeconds, (s, v) => s.predator.replenishIntervalSeconds = v);
-        AddSlider(parent, font, theme, "Replenish amount (per tick)", 0f, 200f, true,
+        AddSlider(parent, font, theme, "Replenish amount (per tick)", 0f, PredatorReplenishAmountMax, true,
             s => s.predator.replenishAmount, (s, v) => s.predator.replenishAmount = Mathf.RoundToInt(v));
-        AddSlider(parent, font, theme, "Expression: stat traits", 0f, 3f, false,
+        AddSlider(parent, font, theme, "Expression: stat traits", ExpressionTraitMin, ExpressionTraitMax, false,
             s => s.predator.expression.statTraits, (s, v) => s.predator.expression.statTraits = v);
-        AddSlider(parent, font, theme, "Expression: rare traits", 0f, 3f, false,
+        AddSlider(parent, font, theme, "Expression: rare traits", ExpressionTraitMin, ExpressionTraitMax, false,
             s => s.predator.expression.rareTraits, (s, v) => s.predator.expression.rareTraits = v);
-        AddSlider(parent, font, theme, "Expression: apex", 0f, 3f, false,
+        AddSlider(parent, font, theme, "Expression: apex", ExpressionTraitMin, ExpressionTraitMax, false,
             s => s.predator.expression.apexTraits, (s, v) => s.predator.expression.apexTraits = v);
     }
 

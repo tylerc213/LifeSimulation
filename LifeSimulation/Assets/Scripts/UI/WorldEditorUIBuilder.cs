@@ -42,6 +42,8 @@ public static class WorldEditorUIBuilder
 
         if (canvas.transform.Find("SettingsPopupsRoot") == null)
             BuildSettingsPopupsRoot(canvas.transform, font, theme);
+
+        EditorPanelController.EnsureOnPanel(editorPanel, font, theme);
     }
 
     static TMP_FontAsset GetSceneFont()
@@ -62,6 +64,7 @@ public static class WorldEditorUIBuilder
         go.GetComponent<RectTransform>().sizeDelta = new Vector2(200f, 36f);
         go.AddComponent<PauseSimulationButtonController>();
         go.transform.SetSiblingIndex(GetInsertIndexAfterGenerateMap(editorPanel));
+        go.SetActive(false);
     }
 
     static void BuildSettingsButtons(Transform editorPanel, TMP_FontAsset font, LifeSimUITheme theme)
@@ -250,5 +253,153 @@ public static class WorldEditorUIBuilder
         settingsUi.BuildCategoryPanels(cr, font, theme);
 
         root.SetActive(false);
+    }
+}
+
+/// <summary>
+/// Editor strip: collapse toggle (top-left overlay) and pause visibility after map generation starts.
+/// </summary>
+public class EditorPanelController : MonoBehaviour
+{
+    public const string CollapseToggleName = "EditorPanelCollapseToggle";
+    const string PauseButtonName = "PauseSimulationButton";
+    const string GenerateMapButtonName = "GenerateMapButton";
+
+    TextMeshProUGUI _collapseGlyph;
+    bool _collapsed;
+    bool _simulationStarted;
+
+    public static EditorPanelController Instance { get; private set; }
+
+    void Awake()
+    {
+        Instance = this;
+    }
+
+    void OnDestroy()
+    {
+        if (Instance == this)
+            Instance = null;
+    }
+
+    /// <summary> Ensures controller and collapse toggle exist; call after other editor panel UI is built. </summary>
+    public static void EnsureOnPanel(Transform editorPanel, TMP_FontAsset font, LifeSimUITheme theme)
+    {
+        if (editorPanel == null)
+            return;
+
+        EditorPanelController c = editorPanel.GetComponent<EditorPanelController>();
+        if (c == null)
+            c = editorPanel.gameObject.AddComponent<EditorPanelController>();
+
+        c.EnsureCollapseBuilt(font, theme);
+        c.BringCollapseToFront();
+    }
+
+    /// <summary> Called when Generate Map has started the simulation; reveals pause when the panel is expanded. </summary>
+    public void NotifySimulationStarted()
+    {
+        _simulationStarted = true;
+        if (!_collapsed)
+            ApplyGenerateMapVisibility();
+        ApplyPauseVisibility();
+    }
+
+    void EnsureCollapseBuilt(TMP_FontAsset font, LifeSimUITheme theme)
+    {
+        Transform existing = transform.Find(CollapseToggleName);
+        if (existing != null)
+        {
+            _collapseGlyph = existing.GetComponentInChildren<TextMeshProUGUI>(true);
+            return;
+        }
+
+        LifeSimUITheme t = theme != null ? theme : LifeSimUI.Theme;
+
+        GameObject go = new GameObject(CollapseToggleName, typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement));
+        go.transform.SetParent(transform, false);
+
+        RectTransform rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0f, 1f);
+        rt.anchorMax = new Vector2(0f, 1f);
+        rt.pivot = new Vector2(0f, 1f);
+        rt.anchoredPosition = new Vector2(6f, -6f);
+        rt.sizeDelta = new Vector2(30f, 30f);
+
+        LayoutElement layout = go.GetComponent<LayoutElement>();
+        layout.ignoreLayout = true;
+
+        GameObject textGo = new GameObject("Glyph", typeof(RectTransform), typeof(TextMeshProUGUI));
+        textGo.transform.SetParent(go.transform, false);
+        RectTransform tr = textGo.GetComponent<RectTransform>();
+        tr.anchorMin = Vector2.zero;
+        tr.anchorMax = Vector2.one;
+        tr.offsetMin = Vector2.zero;
+        tr.offsetMax = Vector2.zero;
+
+        _collapseGlyph = textGo.GetComponent<TextMeshProUGUI>();
+        _collapseGlyph.text = ">";
+        _collapseGlyph.alignment = TextAlignmentOptions.Center;
+        _collapseGlyph.enableAutoSizing = true;
+        _collapseGlyph.fontSizeMin = 12f;
+        _collapseGlyph.fontSizeMax = 22f;
+        if (font != null)
+            _collapseGlyph.font = font;
+
+        go.GetComponent<Image>().raycastTarget = true;
+        Button button = go.GetComponent<Button>();
+        button.onClick.AddListener(ToggleCollapsed);
+
+        LifeSimUIButtonStyle.ApplyStripButton(go, t, false);
+    }
+
+    void BringCollapseToFront()
+    {
+        Transform t = transform.Find(CollapseToggleName);
+        if (t != null)
+            t.SetAsLastSibling();
+    }
+
+    void ToggleCollapsed()
+    {
+        _collapsed = !_collapsed;
+        ApplyCollapsedVisuals();
+    }
+
+    void ApplyCollapsedVisuals()
+    {
+        if (_collapseGlyph != null)
+            _collapseGlyph.text = _collapsed ? "<" : ">";
+
+        for (int i = 0; i < transform.childCount; i++)
+        {
+            Transform child = transform.GetChild(i);
+            if (child.name == CollapseToggleName)
+                continue;
+
+            child.gameObject.SetActive(!_collapsed);
+        }
+
+        if (!_collapsed)
+            ApplyGenerateMapVisibility();
+        ApplyPauseVisibility();
+    }
+
+    void ApplyGenerateMapVisibility()
+    {
+        Transform gen = transform.Find(GenerateMapButtonName);
+        if (gen == null)
+            return;
+
+        gen.gameObject.SetActive(!_simulationStarted);
+    }
+
+    void ApplyPauseVisibility()
+    {
+        Transform pause = transform.Find(PauseButtonName);
+        if (pause == null)
+            return;
+
+        pause.gameObject.SetActive(_simulationStarted && !_collapsed);
     }
 }
