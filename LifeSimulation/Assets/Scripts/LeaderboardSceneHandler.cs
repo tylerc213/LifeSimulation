@@ -54,6 +54,7 @@ public class LeaderboardSceneHandler : MonoBehaviour
     void Start()
     {
         AutoAssignUiReferences();
+        ApplyLeaderboardRowTypography();
         EnsureCategoryBar();
         StartCoroutine(RefreshSelectedCategoryRoutine());
     }
@@ -243,7 +244,10 @@ public class LeaderboardSceneHandler : MonoBehaviour
                 break;
 
             NakamaLeaderboardService.LeaderboardRecord record = records[i];
-            nameRowTexts[i].text = NakamaLeaderboardService.ResolveDisplayName(record);
+            string displayName = NakamaLeaderboardService.ResolveDisplayName(record);
+            nameRowTexts[i].text = string.IsNullOrEmpty(displayName)
+                ? string.Empty
+                : displayName.ToUpperInvariant();
             scoreRowTexts[i].text = NakamaLeaderboardService.ResolveScore(record);
         }
 
@@ -331,5 +335,35 @@ public class LeaderboardSceneHandler : MonoBehaviour
 
         nameRowTexts = names.ToArray();
         scoreRowTexts = scores.ToArray();
+    }
+
+    /// <summary> Match row entry text to the rest of the UI: shared TMP font, semibold, slight tracking. </summary>
+    void ApplyLeaderboardRowTypography()
+    {
+        TMP_FontAsset font = FindFirstFont();
+
+        void StyleDataCell(TMP_Text t)
+        {
+            if (t == null)
+                return;
+            if (font != null)
+                t.font = font;
+            t.fontStyle = FontStyles.Bold;
+            t.characterSpacing = 1.25f;
+            t.enableWordWrapping = false;
+            t.fontSize = 24f;
+        }
+
+        if (nameRowTexts != null)
+        {
+            foreach (TMP_Text t in nameRowTexts)
+                StyleDataCell(t);
+        }
+
+        if (scoreRowTexts != null)
+        {
+            foreach (TMP_Text t in scoreRowTexts)
+                StyleDataCell(t);
+        }
     }
 }
