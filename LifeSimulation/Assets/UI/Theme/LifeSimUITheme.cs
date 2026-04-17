@@ -13,6 +13,7 @@
 
 using UnityEngine;
 
+/// <summary> Colors, spacing, and type sizes for simulation uGUI + TMP. </summary>
 [CreateAssetMenu(fileName = "LifeSimUITheme", menuName = "Life Simulation/UI Theme")]
 public class LifeSimUITheme : ScriptableObject
 {

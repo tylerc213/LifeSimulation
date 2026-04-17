@@ -11,13 +11,15 @@
 //    runtime so the Simulation scene stays sparse in the editor yet still ships a full control surface.
 // -----------------------------------------------------------------------------
 
+using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary> Builds world editor UI under the Simulation scene Canvas at runtime. </summary>
 public static class WorldEditorUIBuilder
 {
-    /// <summary>Shared body label color for legacy call sites; prefer <see cref="LifeSimUI.Theme"/>.</summary>
+    /// <summary> Shared body label color; prefer <see cref="LifeSimUI.Theme"/>. </summary>
     public static Color TextDimPublic => LifeSimUI.Theme.bodyText;
 
     public static void EnsureBuilt(Canvas canvas)
@@ -44,7 +46,7 @@ public static class WorldEditorUIBuilder
 
     static TMP_FontAsset GetSceneFont()
     {
-        TextMeshProUGUI any = Object.FindFirstObjectByType<TextMeshProUGUI>();
+        TextMeshProUGUI any = UnityEngine.Object.FindFirstObjectByType<TextMeshProUGUI>();
         return any != null ? any.font : null;
     }
 
@@ -57,8 +59,7 @@ public static class WorldEditorUIBuilder
     static void BuildPauseButton(Transform editorPanel, TMP_FontAsset font, LifeSimUITheme theme)
     {
         GameObject go = CreateButton("PauseSimulationButton", "Pause", editorPanel, font, theme);
-        RectTransform rt = go.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(200f, 36f);
+        go.GetComponent<RectTransform>().sizeDelta = new Vector2(200f, 36f);
         go.AddComponent<PauseSimulationButtonController>();
         go.transform.SetSiblingIndex(GetInsertIndexAfterGenerateMap(editorPanel));
     }
@@ -81,27 +82,25 @@ public static class WorldEditorUIBuilder
         grid.constraintCount = 2;
         grid.childAlignment = TextAnchor.MiddleCenter;
 
-        CreateSettingsOpenerButton("GameSettingsButton", "Game Settings", gridGo.transform, font, theme);
-        CreateSettingsOpenerButton("PlantSettingsButton", "Plant Settings", gridGo.transform, font, theme);
-        CreateSettingsOpenerButton("GrazerSettingsButton", "Grazer Settings", gridGo.transform, font, theme);
-        CreateSettingsOpenerButton("PredatorSettingsButton", "Predator Settings", gridGo.transform, font, theme);
+        CreateSettingsOpenerButton("GameSettingsButton", "Game Settings", gridGo.transform, font, theme,
+            ui => ui.OpenGameSettings());
+        CreateSettingsOpenerButton("PlantSettingsButton", "Plant Settings", gridGo.transform, font, theme,
+            ui => ui.OpenPlantSettings());
+        CreateSettingsOpenerButton("GrazerSettingsButton", "Grazer Settings", gridGo.transform, font, theme,
+            ui => ui.OpenGrazerSettings());
+        CreateSettingsOpenerButton("PredatorSettingsButton", "Predator Settings", gridGo.transform, font, theme,
+            ui => ui.OpenPredatorSettings());
     }
 
     static void CreateSettingsOpenerButton(string name, string label, Transform parent, TMP_FontAsset font,
-        LifeSimUITheme theme)
+        LifeSimUITheme theme, Action<WorldEditorSettingsUI> open)
     {
         GameObject go = CreateButton(name, label, parent, font, theme);
-        Button b = go.GetComponent<Button>();
-        string n = name;
-        b.onClick.AddListener(() =>
+        go.GetComponent<Button>().onClick.AddListener(() =>
         {
             WorldEditorSettingsUI ui = WorldEditorSettingsUI.Instance;
-            if (ui == null)
-                return;
-            if (n.Contains("Game")) ui.OpenGameSettings();
-            else if (n.Contains("Plant")) ui.OpenPlantSettings();
-            else if (n.Contains("Grazer")) ui.OpenGrazerSettings();
-            else if (n.Contains("Predator")) ui.OpenPredatorSettings();
+            if (ui != null)
+                open(ui);
         });
     }
 
@@ -111,20 +110,7 @@ public static class WorldEditorUIBuilder
         GameObject go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
         go.transform.SetParent(parent, false);
         Image img = go.GetComponent<Image>();
-        img.color = theme.toolbarButtonBackground;
-        img.type = Image.Type.Sliced;
         img.raycastTarget = true;
-
-        Button btn = go.GetComponent<Button>();
-        ColorBlock cb = btn.colors;
-        cb.normalColor = Color.white;
-        cb.highlightedColor = new Color(0.92f, 0.92f, 0.92f, 1f);
-        cb.pressedColor = new Color(0.82f, 0.82f, 0.82f, 1f);
-        cb.selectedColor = Color.white;
-        cb.disabledColor = new Color(0.78f, 0.78f, 0.78f, 0.5f);
-        btn.colors = cb;
-        btn.transition = Selectable.Transition.ColorTint;
-        btn.targetGraphic = img;
 
         GameObject textGo = new GameObject("Text (TMP)", typeof(RectTransform), typeof(TextMeshProUGUI));
         textGo.transform.SetParent(go.transform, false);
@@ -135,12 +121,11 @@ public static class WorldEditorUIBuilder
         tr.offsetMax = Vector2.zero;
         TextMeshProUGUI tmp = textGo.GetComponent<TextMeshProUGUI>();
         tmp.text = label;
-        tmp.fontSize = theme.toolbarButtonFontSize;
-        tmp.color = theme.toolbarButtonLabel;
         tmp.alignment = TextAlignmentOptions.Center;
         if (font != null)
             tmp.font = font;
 
+        LifeSimUIButtonStyle.ApplyStripButton(go, theme, false);
         return go;
     }
 
@@ -217,11 +202,7 @@ public static class WorldEditorUIBuilder
         LayoutElement resetLe = resetBtn.AddComponent<LayoutElement>();
         resetLe.preferredWidth = 72f;
         Button resetB = resetBtn.GetComponent<Button>();
-        resetB.onClick.AddListener(() =>
-        {
-            WorldEditorSettingsUI ui = root.GetComponent<WorldEditorSettingsUI>();
-            ui.ResetCurrentCategory();
-        });
+        resetB.onClick.AddListener(() => root.GetComponent<WorldEditorSettingsUI>().ResetCurrentCategory());
 
         GameObject scrollGo = new GameObject("Scroll", typeof(RectTransform), typeof(Image), typeof(ScrollRect));
         scrollGo.transform.SetParent(shell.transform, false);

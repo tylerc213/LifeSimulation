@@ -13,35 +13,31 @@
 
 using UnityEngine;
 
+/// <summary> Active LifeSim UI theme (Resources asset or runtime defaults). </summary>
 public static class LifeSimUI
 {
     static LifeSimUITheme _theme;
 
-    /// <summary>Active theme; never null.</summary>
+    /// <summary> Active theme; never null. </summary>
     public static LifeSimUITheme Theme
     {
         get
         {
             if (_theme == null)
-            {
-                _theme = Resources.Load<LifeSimUITheme>("LifeSimUITheme");
-                if (_theme == null)
-                {
-                    _theme = ScriptableObject.CreateInstance<LifeSimUITheme>();
-                    _theme.name = "LifeSimUITheme_RuntimeDefaults";
-                    _theme.ApplyEmbeddedDefaults();
-                }
-            }
-
+                _theme = LoadOrCreateTheme();
             return _theme;
         }
     }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-    /// <summary>For tests or domain reload.</summary>
-    public static void ClearThemeCache()
+    static LifeSimUITheme LoadOrCreateTheme()
     {
-        _theme = null;
+        LifeSimUITheme asset = Resources.Load<LifeSimUITheme>("LifeSimUITheme");
+        if (asset != null)
+            return asset;
+
+        LifeSimUITheme runtime = ScriptableObject.CreateInstance<LifeSimUITheme>();
+        runtime.name = "LifeSimUITheme_RuntimeDefaults";
+        runtime.ApplyEmbeddedDefaults();
+        return runtime;
     }
-#endif
 }

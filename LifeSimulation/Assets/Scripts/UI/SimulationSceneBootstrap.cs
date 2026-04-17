@@ -13,17 +13,21 @@
 
 using UnityEngine;
 
+/// <summary> Ensures settings store and world editor UI exist on Simulation load. </summary>
 public class SimulationSceneBootstrap : MonoBehaviour
 {
     void Start()
     {
-        if (FindFirstObjectByType<SimulationSettingsStore>() == null)
-        {
-            GameObject go = new GameObject("SimulationSettingsStore");
-            go.AddComponent<SimulationSettingsStore>();
-        }
-
+        EnsureSimulationSettingsStore();
         Canvas canvas = FindFirstObjectByType<Canvas>();
         WorldEditorUIBuilder.EnsureBuilt(canvas);
+    }
+
+    static void EnsureSimulationSettingsStore()
+    {
+        if (FindFirstObjectByType<SimulationSettingsStore>() != null)
+            return;
+
+        new GameObject("SimulationSettingsStore").AddComponent<SimulationSettingsStore>();
     }
 }

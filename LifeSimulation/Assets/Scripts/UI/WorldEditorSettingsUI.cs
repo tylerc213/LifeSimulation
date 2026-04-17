@@ -16,6 +16,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary> In-scene settings modal bound to <see cref="SimulationSettingsStore"/>. </summary>
 public class WorldEditorSettingsUI : MonoBehaviour
 {
     public static WorldEditorSettingsUI Instance { get; private set; }
@@ -73,6 +74,67 @@ public class WorldEditorSettingsUI : MonoBehaviour
         _panelPlant.SetActive(false);
         _panelGrazer.SetActive(false);
         _panelPredator.SetActive(false);
+    }
+
+    public void OpenGameSettings() => Show(Category.Game, "Game settings");
+
+    public void OpenPlantSettings() => Show(Category.Plant, "Plant settings");
+
+    public void OpenGrazerSettings() => Show(Category.Grazer, "Grazer settings");
+
+    public void OpenPredatorSettings() => Show(Category.Predator, "Predator settings");
+
+    public void Close()
+    {
+        if (root != null)
+            root.SetActive(false);
+    }
+
+    public void ResetCurrentCategory()
+    {
+        SimulationSettings def = SimulationSettings.CreateDefaults();
+        SimulationSettings cur = SimulationSettingsStore.Instance != null
+            ? SimulationSettingsStore.Instance.Current
+            : null;
+        if (cur == null)
+            return;
+
+        switch (_currentCategory)
+        {
+            case Category.Game:
+                cur.game = JsonUtility.FromJson<GameSettingsData>(JsonUtility.ToJson(def.game));
+                cur.terrain = JsonUtility.FromJson<TerrainSettingsData>(JsonUtility.ToJson(def.terrain));
+                break;
+            case Category.Plant:
+                cur.plant = JsonUtility.FromJson<PlantSettingsBlock>(JsonUtility.ToJson(def.plant));
+                break;
+            case Category.Grazer:
+                cur.grazer = JsonUtility.FromJson<GrazerSettingsBlock>(JsonUtility.ToJson(def.grazer));
+                break;
+            case Category.Predator:
+                cur.predator = JsonUtility.FromJson<PredatorSettingsBlock>(JsonUtility.ToJson(def.predator));
+                break;
+        }
+
+        SimulationSettingsStore.Instance.CommitFromCurrent();
+    }
+
+    void Show(Category cat, string title)
+    {
+        _currentCategory = cat;
+        if (titleText != null)
+            titleText.text = title;
+        if (_panelGame != null)
+            _panelGame.SetActive(cat == Category.Game);
+        if (_panelPlant != null)
+            _panelPlant.SetActive(cat == Category.Plant);
+        if (_panelGrazer != null)
+            _panelGrazer.SetActive(cat == Category.Grazer);
+        if (_panelPredator != null)
+            _panelPredator.SetActive(cat == Category.Predator);
+
+        if (root != null)
+            root.SetActive(true);
     }
 
     static GameObject CreatePanelShell(string name, Transform parent, LifeSimUITheme theme)
@@ -368,72 +430,6 @@ public class WorldEditorSettingsUI : MonoBehaviour
         sl.targetGraphic = hImg;
         sl.direction = Slider.Direction.LeftToRight;
         return sl;
-    }
-
-    public void OpenGameSettings() => Show(Category.Game, "Game settings");
-    public void OpenPlantSettings() => Show(Category.Plant, "Plant settings");
-    public void OpenGrazerSettings() => Show(Category.Grazer, "Grazer settings");
-    public void OpenPredatorSettings() => Show(Category.Predator, "Predator settings");
-
-    void Show(Category cat, string title)
-    {
-        _currentCategory = cat;
-        if (titleText != null)
-            titleText.text = title;
-        if (_panelGame != null)
-            _panelGame.SetActive(cat == Category.Game);
-        if (_panelPlant != null)
-            _panelPlant.SetActive(cat == Category.Plant);
-        if (_panelGrazer != null)
-            _panelGrazer.SetActive(cat == Category.Grazer);
-        if (_panelPredator != null)
-            _panelPredator.SetActive(cat == Category.Predator);
-
-        if (root != null)
-            root.SetActive(true);
-    }
-
-    public void Close()
-    {
-        if (root != null)
-            root.SetActive(false);
-    }
-
-    public void ResetCurrentCategory()
-    {
-        SimulationSettings def = SimulationSettings.CreateDefaults();
-        SimulationSettings cur = SimulationSettingsStore.Instance != null
-            ? SimulationSettingsStore.Instance.Current
-            : null;
-        if (cur == null)
-            return;
-
-        switch (_currentCategory)
-        {
-            case Category.Game:
-                cur.game = JsonUtility.FromJson<GameSettingsData>(JsonUtility.ToJson(def.game));
-                cur.terrain = JsonUtility.FromJson<TerrainSettingsData>(JsonUtility.ToJson(def.terrain));
-                break;
-            case Category.Plant:
-                cur.plant = JsonUtility.FromJson<PlantSettingsBlock>(JsonUtility.ToJson(def.plant));
-                break;
-            case Category.Grazer:
-                cur.grazer = JsonUtility.FromJson<GrazerSettingsBlock>(JsonUtility.ToJson(def.grazer));
-                break;
-            case Category.Predator:
-                cur.predator = JsonUtility.FromJson<PredatorSettingsBlock>(JsonUtility.ToJson(def.predator));
-                break;
-        }
-
-        SimulationSettingsValidator.TryValidate(cur, out _);
-        SimulationSettingsStore.Instance.CommitFromCurrent();
-        RefreshAllSliders();
-    }
-
-    public void RefreshAllSliders()
-    {
-        if (SimulationSettingsStore.Instance != null)
-            SimulationSettingsStore.Instance.ApplyAll();
     }
 
     void OnDestroy()

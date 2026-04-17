@@ -37,23 +37,40 @@ public class ConfigHandler : MonoBehaviour
         if (!TryGetImportJsonPath(out string path))
             return;
 
-        ImportedConfigurationJson = File.ReadAllText(path);
-        ValidateConfigurationSchema(ImportedConfigurationJson);
-        ApplyConfigurationToDataSources(ImportedConfigurationJson);
+        string json = File.ReadAllText(path);
+        ImportedConfigurationJson = json;
+
+        if (!SimulationSettingsStore.TryDeserializeAndValidate(json, out SimulationSettings settings, out string error))
+        {
+            Debug.LogWarning("Config import failed: " + error);
+            return;
+        }
+
+        try
+        {
+            File.WriteAllText(GetDefaultConfigPath(), json);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning("Could not persist imported config: " + e.Message);
+        }
+
+        if (SimulationSettingsStore.Instance != null)
+            SimulationSettingsStore.Instance.ReplaceAndApply(settings, saveToDisk: false);
     }
 
-    /// <summary> saves a blank JSON stub via save dialog (Editor) or default path (player) </summary>
+    /// <summary> writes persisted simulation settings (or in-memory store when present) to a chosen file </summary>
     public void ExportConfigurationJson()
     {
         Debug.Log("Export Configuration JSON Selected");
         if (!TryGetExportJsonPath(out string path))
             return;
 
-        string json = SimulationSettingsStore.Instance != null
-            ? JsonUtility.ToJson(SimulationSettingsStore.Instance.Current, true)
-            : JsonUtility.ToJson(SimulationSettings.CreateDefaults(), true);
+        SimulationSettings settings = SimulationSettingsStore.Instance != null
+            ? SimulationSettingsStore.Instance.Current
+            : SimulationSettingsStore.LoadPersistedOrDefaults(defaultConfigFileName);
 
-        File.WriteAllText(path, json);
+        File.WriteAllText(path, JsonUtility.ToJson(settings, true));
     }
 
     /// <summary> returns to main menu scene </summary>
@@ -93,37 +110,5 @@ public class ConfigHandler : MonoBehaviour
     string GetDefaultConfigPath()
     {
         return Path.Combine(Application.persistentDataPath, defaultConfigFileName);
-    }
-
-    static string BlankExportJson()
-    {
-        return JsonUtility.ToJson(SimulationSettings.CreateDefaults(), true);
-    }
-
-    void ValidateConfigurationSchema(string json)
-    {
-        if (!SimulationSettingsStore.TryDeserializeAndValidate(json, out _, out string error))
-            Debug.LogWarning("Config validation failed: " + error);
-    }
-
-    void ApplyConfigurationToDataSources(string json)
-    {
-        if (!SimulationSettingsStore.TryDeserializeAndValidate(json, out SimulationSettings settings, out string error))
-        {
-            Debug.LogWarning("Config import failed: " + error);
-            return;
-        }
-
-        try
-        {
-            File.WriteAllText(GetDefaultConfigPath(), json);
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogWarning("Could not persist imported config: " + e.Message);
-        }
-
-        if (SimulationSettingsStore.Instance != null)
-            SimulationSettingsStore.Instance.ReplaceAndApply(settings, saveToDisk: false);
     }
 }

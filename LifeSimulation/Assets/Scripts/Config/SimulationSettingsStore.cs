@@ -15,7 +15,7 @@ using System;
 using System.IO;
 using UnityEngine;
 
-/// <summary> Single instance in Simulation scene (e.g. on Managers). </summary>
+/// <summary> Loads, saves, and applies <see cref="SimulationSettings"/> in the Simulation scene. </summary>
 [DefaultExecutionOrder(-100)]
 public class SimulationSettingsStore : MonoBehaviour
 {
@@ -84,16 +84,46 @@ public class SimulationSettingsStore : MonoBehaviour
             return false;
         }
 
-        if (!SimulationSettingsValidator.TryValidate(settings, out error))
-            return false;
+        return SimulationSettingsValidator.TryValidate(settings, out error);
+    }
 
-        return true;
+    /// <summary>
+    /// Loads validated settings from persistent storage without needing <see cref="Instance"/>
+    /// (e.g. Configuration scene export/import).
+    /// </summary>
+    public static SimulationSettings LoadPersistedOrDefaults(string localFileName)
+    {
+        string path = Path.Combine(Application.persistentDataPath, localFileName);
+        try
+        {
+            if (!File.Exists(path))
+                return SimulationSettings.CreateDefaults();
+
+            string json = File.ReadAllText(path);
+            if (TryDeserializeAndValidate(json, out SimulationSettings s, out string error))
+                return s;
+
+            Debug.LogWarning("SimulationSettingsStore: invalid persisted config, using defaults: " + error);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning("SimulationSettingsStore: could not read persisted config: " + e.Message);
+        }
+
+        return SimulationSettings.CreateDefaults();
     }
 
     public void ReplaceAndApply(SimulationSettings s, bool saveToDisk)
     {
-        if (s == null) return;
-        SimulationSettingsValidator.TryValidate(s, out _);
+        if (s == null)
+            return;
+
+        if (!SimulationSettingsValidator.TryValidate(s, out string error))
+        {
+            Debug.LogWarning("SimulationSettingsStore: ReplaceAndApply failed validation: " + error);
+            return;
+        }
+
         Current = s;
         ApplyAll();
         if (saveToDisk)
@@ -103,7 +133,6 @@ public class SimulationSettingsStore : MonoBehaviour
     public void ResetToDefaults()
     {
         Current = SimulationSettings.CreateDefaults();
-        SimulationSettingsValidator.TryValidate(Current, out _);
         ApplyAll();
         SaveToDisk();
     }
@@ -132,6 +161,23 @@ public class SimulationSettingsStore : MonoBehaviour
         SettingsApplied?.Invoke();
     }
 
+    public void ReapplyEcosystemOnly()
+    {
+        ApplyEcosystem();
+    }
+
+    public void CommitFromCurrent()
+    {
+        if (!SimulationSettingsValidator.TryValidate(Current, out string error))
+        {
+            Debug.LogWarning("SimulationSettingsStore: CommitFromCurrent failed validation: " + error);
+            return;
+        }
+
+        ApplyAll();
+        SaveToDisk();
+    }
+
     void ApplyGame()
     {
         if (SimulationManager.Instance == null || Current.game == null)
@@ -156,13 +202,13 @@ public class SimulationSettingsStore : MonoBehaviour
         map.startPredators = Current.predator.startingPopulation;
 
         UIHandler ui = FindFirstObjectByType<UIHandler>();
-        if (ui != null)
-        {
-            if (ui.widthInput != null)
-                ui.widthInput.SetTextWithoutNotify(Current.terrain.mapWidth.ToString());
-            if (ui.heightInput != null)
-                ui.heightInput.SetTextWithoutNotify(Current.terrain.mapHeight.ToString());
-        }
+        if (ui == null)
+            return;
+
+        if (ui.widthInput != null)
+            ui.widthInput.SetTextWithoutNotify(Current.terrain.mapWidth.ToString());
+        if (ui.heightInput != null)
+            ui.heightInput.SetTextWithoutNotify(Current.terrain.mapHeight.ToString());
     }
 
     void ApplyEcosystem()
@@ -172,19 +218,5 @@ public class SimulationSettingsStore : MonoBehaviour
             return;
 
         eco.ConfigureFromSettings(Current.plant, Current.grazer, Current.predator);
-    }
-
-    /// <summary> Call after EcosystemManager has finished Awake — fixes load order where ApplyAll ran before Instance existed. </summary>
-    public void ReapplyEcosystemOnly()
-    {
-        ApplyEcosystem();
-    }
-
-    /// <summary> Call after a slider changes a subset of Current (mutate Current then call). </summary>
-    public void CommitFromCurrent()
-    {
-        SimulationSettingsValidator.TryValidate(Current, out _);
-        ApplyAll();
-        SaveToDisk();
     }
 }

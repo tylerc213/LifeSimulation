@@ -13,6 +13,7 @@
 
 using UnityEngine;
 
+/// <summary> Validates and clamps <see cref="SimulationSettings"/> in place. </summary>
 public static class SimulationSettingsValidator
 {
     public const int SupportedSchemaVersion = 1;
@@ -32,29 +33,17 @@ public static class SimulationSettingsValidator
             return false;
         }
 
-        if (s.terrain != null)
-        {
-            s.terrain.obstacleMinCluster = Mathf.Max(1, s.terrain.obstacleMinCluster);
-            s.terrain.obstacleMaxCluster = Mathf.Max(s.terrain.obstacleMinCluster, s.terrain.obstacleMaxCluster);
-            s.terrain.mapWidth = Mathf.Clamp(s.terrain.mapWidth, 20, 500);
-            s.terrain.mapHeight = Mathf.Clamp(s.terrain.mapHeight, 20, 500);
-        }
-
         ClampInPlace(s);
         return true;
     }
 
-    /// <summary> Copy legacy obstacle/water fields into rockSpawnRate / waterSpawnRate when JSON predates those keys. </summary>
     static void MigrateTerrainV1(TerrainSettingsData t)
     {
         if (t.rockSpawnRate <= 0f && t.obstacleSpawnChance > 0f)
             t.rockSpawnRate = Mathf.Clamp(t.obstacleSpawnChance, 0f, 0.03f);
 
         if (t.waterSpawnRate <= 0f && t.waterThreshold > 0f)
-        {
-            // Old: blue if perlin > waterThreshold (higher threshold => less water). Approximate inverse for 0–1 rate.
             t.waterSpawnRate = Mathf.Clamp01(Mathf.InverseLerp(0.9f, 0.5f, t.waterThreshold));
-        }
 
         if (t.rockSpawnRate < 0f)
             t.rockSpawnRate = 0.01f;
@@ -80,7 +69,6 @@ public static class SimulationSettingsValidator
         }
 
         ClampPopulationAndReplenish(s);
-
         ClampExpression(s);
     }
 
@@ -108,7 +96,6 @@ public static class SimulationSettingsValidator
             s.predator.maxPopulation = Mathf.Clamp(s.predator.maxPopulation, 1, 2000);
             s.predator.replenishIntervalSeconds = Mathf.Clamp(s.predator.replenishIntervalSeconds, 0.25f, 300f);
             s.predator.replenishAmount = Mathf.Clamp(s.predator.replenishAmount, 0, 200);
-            // Saves from before the replenish toggle was visible: sliders were set but the flag stayed false.
             if (!s.predator.replenishEnabled && s.predator.replenishAmount >= 50)
                 s.predator.replenishEnabled = true;
         }
