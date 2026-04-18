@@ -1,4 +1,4 @@
-// -----------------------------------------------------------------------------
+﻿// -----------------------------------------------------------------------------
 // Project:		EXTENDED LIFE SIMULATION CAPSTONE ASSIGNMENT
 // Item:		Environment & Resource Management
 // Requirement:	Environmental Variation, Seasonal Growth, Lighting

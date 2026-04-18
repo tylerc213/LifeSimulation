@@ -1,3 +1,13 @@
+// -----------------------------------------------------------------------------
+// Project:     EXTENDED LIFE SIMULATION CAPSTONE ASSIGNMENT
+// Item:        Simulation GUI
+// Requirement: Sim Editor
+// Author:      Robert Amborski
+// Date:        3/25/2026
+// Version:     0.0.1
+//
+// Description:
+//    Generates a square tilemap using a provided seed and specified X/Y dimensions.
 //    After map generation, spawns initial obstacles, plants, grazers, and predators.
 // -----------------------------------------------------------------------------
 using System;
@@ -52,11 +62,24 @@ public class MapGenerator2D : MonoBehaviour
     public bool HasSimulationStarted { get; private set; }
 
     /// <summary> Executes map generation logic then spawns initial entities </summary>
-    /// <param name="seed"> String used to seed the RNG </param>
-    /// <param name="width"> Width of map in tiles </param>
-    /// <param name="height"> Height of map in tiles </param>
-    public void GenerateMap(string seed, int width, int height)
+    public void GenerateMap()
     {
+        IsMapReady = false;
+        HasSimulationStarted = false;
+
+        // Determine dimensions from central spectator settings
+        int sizeDim = 500;
+        var camHandler = FindFirstObjectByType<CameraHandler>();
+        if (camHandler != null)
+        {
+            switch (camHandler.selectedSize)
+            {
+                case CameraHandler.MapSize.Small: sizeDim = 150; break;
+                case CameraHandler.MapSize.Medium: sizeDim = 300; break;
+                case CameraHandler.MapSize.Large: sizeDim = 500; break;
+            }
+        }
+
         // Wipe existing data to prepare for new generation
         squareTilemap.ClearAllTiles();
         _openTiles.Clear();
@@ -67,27 +90,39 @@ public class MapGenerator2D : MonoBehaviour
         DestroyTagged("Predator");
         DestroyTagged("Obstacle");
 
-        // Convert string hash to initialize random state
-        UnityEngine.Random.InitState(seed.GetHashCode());
+        // Initialize unique seed for sim run
+        UnityEngine.Random.InitState((int)DateTime.Now.Ticks);
+        float offsetX = UnityEngine.Random.Range(0f, 99999f);
+        float offsetY = UnityEngine.Random.Range(0f, 99999f);
+
+        // calculate offset for centering
+        int halfDim = sizeDim / 2;
+        Vector3Int startPos = new Vector3Int(-halfDim, -halfDim, 0);
+        Vector3Int size = new Vector3Int(sizeDim, sizeDim, 1);
+
+        // Batch set tiles to avoid CPU overhead
+        BoundsInt bounds = new BoundsInt(startPos, size);
+        TileBase[] tileArray = new TileBase[sizeDim * sizeDim];
+
+        for (int i = 0; i < tileArray.Length; i++) tileArray[i] = baseSquareTile;
+        squareTilemap.SetTilesBlock(bounds, tileArray);
 
         // ── Tile placement ────────────────────────────────────────────────────
-        for (int x = 0; x < width; x++)
+        for (int x = -halfDim; x < halfDim; x++)
         {
-            for (int y = 0; y < height; y++)
+            for (int y = -halfDim; y < halfDim; y++)
             {
                 Vector3Int tilePos = new Vector3Int(x, y, 0);
                 squareTilemap.SetTile(tilePos, baseSquareTile);
 
-                float perlin = Mathf.PerlinNoise(x * 0.1f, y * 0.1f);
-                Color tileColor = (perlin > 0.67f)
-                    ? new Color(0.1f, 0.2f, 0.5f)
-                    : Color.tan;
+                // Perlin Logic (using +halfDim to keep noise positive)
+                float perlin = Mathf.PerlinNoise((x + halfDim) * perlinScale + offsetX, (y + halfDim) * perlinScale + offsetY);
+                Color tileColor = (perlin > 0.65f) ? new Color(0.1f, 0.2f, 0.5f) : Color.tan;
 
                 squareTilemap.SetTileFlags(tilePos, TileFlags.None);
                 squareTilemap.SetColor(tilePos, tileColor);
 
-                // Track the world-space center of this tile for later spawning
-                _openTiles.Add(squareTilemap.GetCellCenterWorld(tilePos));
+                _openTiles.Add(new Vector3(x + 0.5f, y + 0.5f, 0));
             }
         }
 
@@ -100,6 +135,12 @@ public class MapGenerator2D : MonoBehaviour
         // ── Obstacle generation ───────────────────────────────────────────────
         if (obstaclePrefab != null)
             SpawnObstacles();
+
+        IsMapReady = true;
+        HasSimulationStarted = true;
+
+        // This notifies SimulationLogger and LogManager to start their work.
+        OnMapGenerated?.Invoke();
 
         // ── Initial entity spawning ───────────────────────────────────────────
         // Use Invoke so EcosystemManager and BoundaryManager have had a frame

@@ -204,11 +204,6 @@ public class SimulationSettingsStore : MonoBehaviour
         UIHandler ui = FindFirstObjectByType<UIHandler>();
         if (ui == null)
             return;
-
-        if (ui.widthInput != null)
-            ui.widthInput.SetTextWithoutNotify(Current.terrain.mapWidth.ToString());
-        if (ui.heightInput != null)
-            ui.heightInput.SetTextWithoutNotify(Current.terrain.mapHeight.ToString());
     }
 
     void ApplyEcosystem()
