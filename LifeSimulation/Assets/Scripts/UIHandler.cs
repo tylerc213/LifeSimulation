@@ -17,11 +17,6 @@ using System.Collections.Generic;
 /// <summary> Handles UI element and simulation interaction </summary>
 public class UIHandler : MonoBehaviour
 {
-    [Header("UI References")]
-    public TMP_InputField seedInput;
-    public TMP_InputField widthInput;
-    public TMP_InputField heightInput;
-
     [Header("Generator Reference")]
     public MapGenerator2D mapGenerator;
     [Header("Spawn Button Visibility")]
@@ -43,24 +38,13 @@ public class UIHandler : MonoBehaviour
     /// <summary> Triggers upon Map Generate button being clicked </summary>
     public void OnClickGenerate()
     {
-        // Takes string data from seed field input to be used in map generation
-        string seed = seedInput.text;
-
         if (mapGenerator == null)
         {
             return;
         }
 
-        int width = 250;
-        int height = 250;
-        if (SimulationSettingsStore.Instance != null)
-        {
-            width = SimulationSettingsStore.Instance.Current.terrain.mapWidth;
-            height = SimulationSettingsStore.Instance.Current.terrain.mapHeight;
-        }
-
         // Pass taken data to map generation script (dimensions come from saved settings, not UI fields)
-        mapGenerator.GenerateMap(seed, width, height);
+        mapGenerator.GenerateMap();
         bool started = mapGenerator.IsMapReady && mapGenerator.HasSimulationStarted;
         UpdateSpawnButtonsVisibility(started);
         SetGenerateMapButtonVisible(!started);
