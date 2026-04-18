@@ -80,13 +80,23 @@ public class MapGenerator2D : MonoBehaviour
     }
 
     /// <summary> Executes map generation logic then spawns initial entities </summary>
-    /// <param name="seed"> String used to seed the RNG </param>
-    /// <param name="width"> Width of map in tiles </param>
-    /// <param name="height"> Height of map in tiles </param>
     public void GenerateMap(string seed, int width, int height)
     {
         IsMapReady = false;
         HasSimulationStarted = false;
+
+        // Determine dimensions from central spectator settings
+        int sizeDim = 500;
+        var camHandler = FindFirstObjectByType<CameraHandler>();
+        if (camHandler != null)
+        {
+            switch (camHandler.selectedSize)
+            {
+                case CameraHandler.MapSize.Small: sizeDim = 150; break;
+                case CameraHandler.MapSize.Medium: sizeDim = 300; break;
+                case CameraHandler.MapSize.Large: sizeDim = 500; break;
+            }
+        }
 
         // Wipe existing data to prepare for new generation
         squareTilemap.ClearAllTiles();
@@ -100,27 +110,40 @@ public class MapGenerator2D : MonoBehaviour
 
         // Convert string hash to initialize random state
         UnityEngine.Random.InitState(seed.GetHashCode());
+        float offsetX = UnityEngine.Random.Range(0f, 99999f);
+        float offsetY = UnityEngine.Random.Range(0f, 99999f);
 
-        // ── Tile placement ────────────────────────────────────────────────────
-        for (int x = 0; x < width; x++)
+        // calculate offset for centering
+        int halfDim = sizeDim / 2;
+        Vector3Int startPos = new Vector3Int(-halfDim, -halfDim, 0);
+        Vector3Int size = new Vector3Int(sizeDim, sizeDim, 1);
+
+        // Batch set tiles to avoid CPU overhead
+        BoundsInt bounds = new BoundsInt(startPos, size);
+        TileBase[] tileArray = new TileBase[sizeDim * sizeDim];
+
+        for (int i = 0; i < tileArray.Length; i++) tileArray[i] = baseSquareTile;
+        squareTilemap.SetTilesBlock(bounds, tileArray);
+
+        // ── Tile Placement & Coloring (Centered at 0,0) ───────────────────────
+        for (int x = -halfDim; x < halfDim; x++)
         {
-            for (int y = 0; y < height; y++)
+            for (int y = -halfDim; y < halfDim; y++)
             {
                 Vector3Int tilePos = new Vector3Int(x, y, 0);
                 squareTilemap.SetTile(tilePos, baseSquareTile);
 
                 float scale = Mathf.Max(perlinScale, 0.001f);
-                float perlin = Mathf.PerlinNoise(x * scale, y * scale);
-                float waterThresholdEffective = Mathf.Lerp(0.9f, 0.5f, Mathf.Clamp01(waterSpawnRate));
-                Color tileColor = (perlin > waterThresholdEffective)
-                    ? new Color(0.1f, 0.2f, 0.5f)
-                    : Color.tan;
+                // Offset Perlin inputs by halfDim to avoid negative coordinate artifacts
+                float perlin = Mathf.PerlinNoise((x + halfDim) * scale + offsetX, (y + halfDim) * scale + offsetY);
+
+                float waterThreshold = Mathf.Lerp(0.9f, 0.5f, Mathf.Clamp01(waterSpawnRate));
+                Color tileColor = (perlin > waterThreshold) ? new Color(0.1f, 0.2f, 0.5f) : Color.tan;
 
                 squareTilemap.SetTileFlags(tilePos, TileFlags.None);
                 squareTilemap.SetColor(tilePos, tileColor);
 
-                // Track the world-space center of this tile for later spawning
-                _openTiles.Add(squareTilemap.GetCellCenterWorld(tilePos));
+                _openTiles.Add(new Vector3(x + 0.5f, y + 0.5f, 0));
             }
         }
 
@@ -137,6 +160,15 @@ public class MapGenerator2D : MonoBehaviour
         // Use Invoke so EcosystemManager and BoundaryManager have had a frame
         // to initialise before we ask them to spawn anything.
         Invoke(nameof(SpawnInitialEntities), 0.1f);
+    }
+
+    /// <summary> Utility: Used for UI button spawns or external positioning </summary>
+    public bool TryGetRandomOpenTileWorldPosition(out Vector3 worldCenter)
+    {
+        worldCenter = default;
+        if (!IsMapReady || _openTiles.Count == 0) return false;
+        worldCenter = _openTiles[UnityEngine.Random.Range(0, _openTiles.Count)];
+        return true;
     }
 
     // ── Obstacle Spawning ─────────────────────────────────────────────────────
