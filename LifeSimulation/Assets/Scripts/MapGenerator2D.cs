@@ -1,13 +1,3 @@
-﻿// -----------------------------------------------------------------------------
-// Project:     EXTENDED LIFE SIMULATION CAPSTONE ASSIGNMENT
-// Item:        Simulation GUI
-// Requirement: Sim Editor
-// Author:      Robert Amborski
-// Date:        3/25/2026
-// Version:     0.0.1
-//
-// Description:
-//    Generates a square tilemap using a provided seed and specified X/Y dimensions.
 //    After map generation, spawns initial obstacles, plants, grazers, and predators.
 // -----------------------------------------------------------------------------
 using System;
@@ -19,16 +9,33 @@ using UnityEngine.Tilemaps;
 /// <summary> Handles procedural tile placement and initial entity spawning </summary>
 public class MapGenerator2D : MonoBehaviour
 {
+    public static MapGenerator2D Instance { get; private set; }
+
+    /// <summary> True after the first successful <see cref="GenerateMap"/> in this session (tiles + obstacles ready). </summary>
+    public static bool IsSimulationRunActive =>
+        Instance != null && Instance.IsMapReady && Instance.HasSimulationStarted;
+
+    /// <summary> Fired when <see cref="GenerateMap"/> completes (tiles + obstacles). Logging should start here, not on scene load. </summary>
+    public static event Action OnMapGenerated;
+
     [Header("Tilemap References")]
     public Tilemap squareTilemap;
     public TileBase baseSquareTile;
 
     [Header("Obstacle Generation")]
     public GameObject obstaclePrefab;
-    [Range(0f, 1f)]
-    public float obstacleSpawnChance = 0.08f;   // probability per tile of spawning an obstacle
-    public int obstacleMinCluster = 1;        // min obstacles per cluster
-    public int obstacleMaxCluster = 3;        // max obstacles per cluster
+    [Tooltip("Probability per tile of attempting a rock cluster. Keep low on large maps.")]
+    [Range(0.0005f, 0.015f)]
+    public float rockSpawnChance = 0.004f;
+    public int obstacleMinCluster = 1;
+    public int obstacleMaxCluster = 2;
+
+    [Header("Terrain coloring (Perlin — water vs land)")]
+    [Tooltip("Feature size for Perlin noise.")]
+    public float perlinScale = 0.1f;
+    [Tooltip("0 = least water, 1 = most water (blue tiles).")]
+    [Range(0f,1f)]
+    public float waterSpawnRate = 0.5f;
 
     [Header("Initial Population")]
     public int startPlants = 15;
@@ -114,7 +121,7 @@ public class MapGenerator2D : MonoBehaviour
         foreach (Vector3 tileCenter in shuffled)
         {
             if (occupied.Contains(tileCenter)) continue;
-            if (UnityEngine.Random.value > obstacleSpawnChance) continue;
+            if (UnityEngine.Random.value > rockSpawnChance) continue;
 
             int clusterSize = UnityEngine.Random.Range(obstacleMinCluster, obstacleMaxCluster + 1);
             PlaceObstacleCluster(tileCenter, clusterSize, occupied);
@@ -195,3 +202,4 @@ public class MapGenerator2D : MonoBehaviour
         }
     }
 }
+
