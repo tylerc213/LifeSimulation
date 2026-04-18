@@ -19,15 +19,11 @@ public class PredatorGenetics : MonoBehaviour
 
     public bool IsVenomous { get; private set; } = false;
     public bool IsAmbusher { get; private set; } = false;
-    public bool HasHerdHunter { get; private set; } = false;
     public bool IsApexPredator { get; private set; } = false;
 
     public const float VenomDamagePerSec = 5f;
     public const float AmbushDamageBonus = 1.5f;
     public const float ApexMult = 5.0f;
-
-    public static float EffectiveVenomDamagePerSec => VenomDamagePerSec * ExpressionStrengthRuntime.PredatorRare;
-    public static float EffectiveAmbushDamageBonus => 1f + (AmbushDamageBonus - 1f) * ExpressionStrengthRuntime.PredatorRare;
 
     private SpriteRenderer _sr;
 
@@ -58,11 +54,6 @@ public class PredatorGenetics : MonoBehaviour
         if (Genome.IsExpressed(TraitType.PredatorThickSkinned))
             HealthMultiplier *= 1.2f;
 
-        float st = ExpressionStrengthRuntime.PredatorStat;
-        SpeedMultiplier = 1f + (SpeedMultiplier - 1f) * st;
-        DamageMultiplier = 1f + (DamageMultiplier - 1f) * st;
-        HealthMultiplier = 1f + (HealthMultiplier - 1f) * st;
-
         // ── Venomous (recessive) ───────────────────────────────────────────
         IsVenomous = Genome.IsExpressed(TraitType.Venomous);
         if (IsVenomous && _sr != null)
@@ -71,31 +62,24 @@ public class PredatorGenetics : MonoBehaviour
         // ── Ambusher (recessive) ───────────────────────────────────────────
         IsAmbusher = Genome.IsExpressed(TraitType.Ambusher);
 
-        // ── Herd Hunter (recessive) ────────────────────────────────────────
-        HasHerdHunter = Genome.IsExpressed(TraitType.HerdHunter);
-
         // ── Apex Predator (recessive) ──────────────────────────────────────
-        // Only one apex predator allowed at a time — PredatorPack enforces this
-        if (Genome.IsExpressed(TraitType.ApexPredator) && PredatorPack.CanBecomeApex())
+        if (Genome.IsExpressed(TraitType.ApexPredator))
         {
             IsApexPredator = true;
-            float apexMult = ApexMult * ExpressionStrengthRuntime.PredatorApex;
-            SpeedMultiplier *= apexMult;
-            HealthMultiplier *= apexMult;
-            DamageMultiplier *= apexMult;
-            if (_sr != null) _sr.color = new Color(0.9f, 0.1f, 0.1f);  // red tint
-            PredatorPack.RegisterApex(this);
+            SpeedMultiplier *= ApexMult;
+            HealthMultiplier *= ApexMult;
+            DamageMultiplier *= ApexMult;
+            if (_sr != null) _sr.color = new Color(0.9f, 0.1f, 0.1f);
         }
 
         // Apply health multiplier to EntityBase
         EntityBase entity = GetComponent<EntityBase>();
         if (entity != null)
+        {
             entity.ApplyHealthMultiplier(HealthMultiplier);
+            entity.RefreshBaseColor();   // ensure flash returns to genetics tint
+        }
     }
 
-    private void OnDestroy()
-    {
-        if (IsApexPredator)
-            PredatorPack.UnregisterApex();
-    }
+
 }

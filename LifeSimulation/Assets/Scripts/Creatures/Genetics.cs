@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------------
+﻿﻿// -----------------------------------------------------------------------------
 // Genetics.cs
 // Core data structures for the trait/gene system.
 // No MonoBehaviour — pure data, used by Genome.cs and all entity scripts.

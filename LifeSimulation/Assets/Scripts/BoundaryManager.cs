@@ -1,10 +1,19 @@
+using System.Diagnostics;
 using System;
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 /// <summary>
-/// Reads the main camera's orthographic size each frame and exposes world-space
-/// bounds. Attach this to a single GameObject (e.g. "Managers").
-/// All agents call BoundaryManager.Instance.Clamp() to stay inside the viewport.
+/// Exposes world-space bounds for agent clamping and random spawning.
+///
+/// Two modes:
+///   Camera mode (default) — bounds follow the camera viewport each frame.
+///   Map mode — bounds are set explicitly by MapGenerator2D after tile placement
+///              and stay fixed until the next map generation.
+///
+/// MapGenerator2D calls SetMapBounds() after generating tiles. When map bounds
+/// are set, they are used instead of the camera, so agents aren't confined to
+/// the visible viewport on large maps.
 /// </summary>
 public class BoundaryManager : MonoBehaviour
 {
@@ -12,10 +21,10 @@ public class BoundaryManager : MonoBehaviour
 
     [HideInInspector] public float MinX, MaxX, MinY, MaxY;
 
-    // Optional padding so agents don't hug the very edge of the screen
     [SerializeField] private float padding = 0.5f;
 
     private Camera _cam;
+    private bool _usingMapBounds = false;
 
     private void Awake()
     {
@@ -25,21 +34,56 @@ public class BoundaryManager : MonoBehaviour
         RefreshBounds();
     }
 
-    private void Update() => RefreshBounds();   // handles window resize / camera zoom
+    private void Update()
+    {
+        // Only refresh from camera if no map bounds have been provided
+        if (!_usingMapBounds) RefreshBounds();
+    }
+
+    /// <summary>
+    /// Called by MapGenerator2D after tile placement.
+    /// Converts tile grid dimensions to world-space bounds and switches out of
+    /// camera mode so agents roam the full map, not just the visible viewport.
+    /// </summary>
+    public void SetMapBounds(Tilemap tilemap)
+    {
+        tilemap.CompressBounds();
+        Bounds b = tilemap.localBounds;
+
+        // Convert tilemap local bounds to world space
+        Vector3 worldMin = tilemap.transform.TransformPoint(b.min);
+        Vector3 worldMax = tilemap.transform.TransformPoint(b.max);
+
+        MinX = worldMin.x + padding;
+        MaxX = worldMax.x - padding;
+        MinY = worldMin.y + padding;
+        MaxY = worldMax.y - padding;
+
+        _usingMapBounds = true;
+
+        UnityEngine.Debug.Log($"BoundaryManager: map bounds set — " +
+                  $"MinX={MinX:F2} MaxX={MaxX:F2} MinY={MinY:F2} MaxY={MaxY:F2}");
+    }
+
+    /// <summary>Revert to camera-based bounds (call before loading a new scene).</summary>
+    public void ClearMapBounds()
+    {
+        _usingMapBounds = false;
+        RefreshBounds();
+    }
 
     private void RefreshBounds()
     {
         if (_cam == null) return;
         float h = _cam.orthographicSize;
         float w = h * _cam.aspect;
-        Vector3 pos = _cam.transform.position;
-        MinX = pos.x - w + padding;
-        MaxX = pos.x + w - padding;
-        MinY = pos.y - h + padding;
-        MaxY = pos.y + h - padding;
+        Vector3 p = _cam.transform.position;
+        MinX = p.x - w + padding;
+        MaxX = p.x + w - padding;
+        MinY = p.y - h + padding;
+        MaxY = p.y + h - padding;
     }
 
-    /// <summary>Returns a position clamped inside the camera boundary.</summary>
     public Vector2 Clamp(Vector2 pos)
     {
         return new Vector2(
@@ -47,7 +91,6 @@ public class BoundaryManager : MonoBehaviour
             Mathf.Clamp(pos.y, MinY, MaxY));
     }
 
-    /// <summary>Returns a random position inside the boundary.</summary>
     public Vector2 RandomPosition()
     {
         return new Vector2(

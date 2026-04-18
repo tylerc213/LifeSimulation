@@ -1,5 +1,4 @@
 using UnityEngine;
-using static System.Net.Mime.MediaTypeNames;
 
 /// <summary>
 /// Raycasting-based obstacle avoidance for 2D agents with box colliders.
@@ -23,7 +22,17 @@ public class SteeringAvoidance : MonoBehaviour
     [SerializeField] private float deadEndThreshold = 0.3f;   // fraction of lookAheadDistance below which a ray counts as blocked
     [SerializeField] private LayerMask obstacleLayer = ~0;
 
-    private const string ObstacleTag = "Obstacle";
+    private static readonly string[] AvoidTags = { "Obstacle", "Plant" };
+    private static readonly string[] AvoidTagsNoPlant = { "Obstacle" };
+    private static readonly string[] AvoidTagsWithCreatures = { "Obstacle", "Plant", "Grazer", "Predator" };
+    private static readonly string[] AvoidTagsWithCreaturesNoPlant = { "Obstacle", "Grazer", "Predator" };
+
+    // Set to true when the agent is actively seeking a plant so it doesn't
+    // steer away from the very plant it's trying to reach
+    public bool IgnorePlants { get; set; } = false;
+
+    // Set to true during wander/patrol so creatures don't pile up on each other
+    public bool AvoidCreatures { get; set; } = false;
 
     // Exposed so Grazer/Predator can react to a dead-end (e.g. pick a new wander target)
     public bool IsDeadEnd { get; private set; }
@@ -65,14 +74,14 @@ public class SteeringAvoidance : MonoBehaviour
                 blockedCount++;
         }
 
-        // Dead-end: every ray is heavily blocked — reverse and signal caller
+        // Dead-end: every ray is heavily blocked â€” reverse and signal caller
         if (blockedCount == rayCount)
         {
             IsDeadEnd = true;
             return -forward * speed;
         }
 
-        // Forward ray is clear — no steering needed
+        // Forward ray is clear â€” no steering needed
         float forwardClearance = CastBox(forward);
         if (forwardClearance >= lookAheadDistance) return desiredVelocity;
 
@@ -89,7 +98,7 @@ public class SteeringAvoidance : MonoBehaviour
     /// </summary>
     private float CastBox(Vector2 direction)
     {
-        RaycastHit2D hit = Physics2D.BoxCast(
+        RaycastHit2D[] hits = Physics2D.BoxCastAll(
             origin: transform.position,
             size: new Vector2(agentHalfWidth * 2f, agentHalfHeight * 2f),
             angle: 0f,
@@ -97,10 +106,28 @@ public class SteeringAvoidance : MonoBehaviour
             distance: lookAheadDistance,
             layerMask: obstacleLayer);
 
-        if (hit.collider == null) return lookAheadDistance;
-        if (!hit.collider.CompareTag(ObstacleTag)) return lookAheadDistance;
+        foreach (RaycastHit2D hit in hits)
+        {
+            if (hit.collider == null) continue;
+            if (hit.collider.transform == transform) continue;
+            if (hit.collider.transform.IsChildOf(transform)) continue;
 
-        return hit.distance;
+            // Pick active tag set based on current flags
+            string[] activeTags;
+            if (AvoidCreatures && !IgnorePlants) activeTags = AvoidTagsWithCreatures;
+            else if (AvoidCreatures && IgnorePlants) activeTags = AvoidTagsWithCreaturesNoPlant;
+            else if (!AvoidCreatures && IgnorePlants) activeTags = AvoidTagsNoPlant;
+            else activeTags = AvoidTags;
+
+            bool shouldAvoid = false;
+            foreach (string tag in activeTags)
+                if (hit.collider.CompareTag(tag)) { shouldAvoid = true; break; }
+            if (!shouldAvoid) continue;
+
+            return hit.distance;
+        }
+
+        return lookAheadDistance;
     }
 
     private static Vector2 Rotate(Vector2 v, float degrees)
@@ -113,7 +140,7 @@ public class SteeringAvoidance : MonoBehaviour
 
     private void OnDrawGizmosSelected()
     {
-        if (!UnityEngine.Application.isPlaying) return;
+        if (!Application.isPlaying) return;
         Rigidbody2D rb = GetComponent<Rigidbody2D>();
         if (rb == null || rb.linearVelocity.sqrMagnitude < 0.001f) return;
 
