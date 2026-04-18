@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 7203731761428207123}
   - component: {fileID: -5385270590963633244}
   - component: {fileID: 775273452906017622}
+  - component: {fileID: 370091643794261004}
   m_Layer: 0
   m_Name: Placeholder_Plant
   m_TagString: Plant
@@ -84,8 +85,8 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -2413806693520163455, guid: a86470a33a6bf42c4b3595704624658b, type: 3}
-  m_Color: {r: 0.1333333, g: 0.5450981, b: 0.1333333, a: 1}
+  m_Sprite: {fileID: -168421969075237668, guid: fa23e4a29abd2284d83653330b450d7c, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -132,13 +133,13 @@ BoxCollider2D:
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 1, y: 1}
+    oldSize: {x: 1.42, y: 1.32}
     newSize: {x: 1, y: 1}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 1, y: 1}
+  m_Size: {x: 1.44, y: 1.34}
   m_EdgeRadius: 0
 --- !u!114 &-5385270590963633244
 MonoBehaviour:
@@ -152,14 +153,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5f909834055c85840a9b226f8a68ccd2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Plant
-  growthDuration: 15
+  growthDuration: 20
   maxScale: 1
   minScale: 0.2
   spreadInterval: 10
   spreadRadius: 3
   maxNearbyPlants: 5
   crowdCheckRadius: 2
-  nutritionValue: 40
+  nutritionValue: 50
+  biteCount: 3
+  biteShakeMag: 0.06
+  biteShakeTime: 0.08
 --- !u!114 &775273452906017622
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -172,3 +176,37 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9604585d7a6a50e4ca34ff1d6ddebddd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlantGenetics
+--- !u!114 &370091643794261004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2075345428037523064}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 458ab1637913df7459679fac4e23a62c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TraitIconDisplay
+  yOffset: -0.8
+  maxRowWidth: 1.4
+  baseIconSize: 0.25
+  sortingOrder: 3
+  iconGrazerNimble: {fileID: 0}
+  iconGrazerStrong: {fileID: 0}
+  iconGrazerThickSkinned: {fileID: 0}
+  iconCamouflage: {fileID: 0}
+  iconSpiky: {fileID: 0}
+  iconPredatorNimble: {fileID: 0}
+  iconPredatorStrong: {fileID: 0}
+  iconPredatorThickSkinned: {fileID: 0}
+  iconVenomous: {fileID: 0}
+  iconAmbusher: {fileID: 0}
+  iconApexPredator: {fileID: 0}
+  iconLeafSmall: {fileID: -6379548132531528638, guid: 8b023c8ec110b5f4ba5947237d55863e, type: 3}
+  iconLeafMedium: {fileID: -6397037617656003751, guid: f396c026dc7705844b6687ca96cdbad9, type: 3}
+  iconLeafLarge: {fileID: -6180128603799448613, guid: 19927812a7f5f5b42b4f2f85b9a66a95, type: 3}
+  iconTasty: {fileID: 2438584931551978850, guid: 04243b79f7bce554789947767a8b1fc8, type: 3}
+  iconBitter: {fileID: -6741204567228339682, guid: 9a001f1dae1bb324e9561ec3435e942c, type: 3}
+  iconPoisonous: {fileID: -5005990984189769374, guid: d119447d72bad724aa1be136e349c2ed, type: 3}
+  iconResilient: {fileID: -1180451429326740249, guid: 49b525a56979da945b7452e4742bbb46, type: 3}
