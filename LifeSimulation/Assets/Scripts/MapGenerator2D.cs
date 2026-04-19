@@ -12,7 +12,6 @@
 // -----------------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
@@ -60,6 +59,24 @@ public class MapGenerator2D : MonoBehaviour
     public bool IsMapReady { get; private set; }
     /// <summary> True once the user has generated at least one map in this scene session.</summary>
     public bool HasSimulationStarted { get; private set; }
+
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Debug.LogWarning("MapGenerator2D: Multiple instances — destroying duplicate.");
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+            Instance = null;
+    }
 
     /// <summary> Executes map generation logic then spawns initial entities </summary>
     public void GenerateMap()
