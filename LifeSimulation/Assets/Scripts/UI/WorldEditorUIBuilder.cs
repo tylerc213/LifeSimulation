@@ -62,6 +62,50 @@ public static class WorldEditorShell
         EditorPanelController.EnsureOnPanel(editorPanel, font, theme);
         EnsureFlexibleEditorPanelRows(layoutRoot);
         ApplyStripStyleToEditorPanelToolbarButtons();
+        EnsureMapSizePresetRow(layoutRoot, font, theme);
+    }
+
+    /// <summary> Removes legacy seed/width/height inputs and adds Small/Default/Large row (Leaderboard category styling). </summary>
+    static void EnsureMapSizePresetRow(Transform layoutRoot, TMP_FontAsset font, LifeSimUITheme theme)
+    {
+        if (layoutRoot == null)
+            return;
+
+        foreach (string legacyName in new[] { "InputField MapSeed", "InputField MapXDim", "InputField MapYDim" })
+        {
+            Transform t = layoutRoot.Find(legacyName);
+            if (t == null)
+                t = FindDeepChild(layoutRoot, legacyName);
+            if (t != null)
+                UnityEngine.Object.DestroyImmediate(t.gameObject);
+        }
+
+        if (layoutRoot.Find("MapSizeButtonRow") != null)
+            return;
+
+        GameObject rowGo = new GameObject("MapSizeButtonRow", typeof(RectTransform), typeof(HorizontalLayoutGroup), typeof(LayoutElement));
+        rowGo.transform.SetParent(layoutRoot, false);
+        rowGo.transform.SetAsFirstSibling();
+
+        RectTransform rowRt = rowGo.GetComponent<RectTransform>();
+        rowRt.sizeDelta = new Vector2(210f, 32f);
+
+        LayoutElement rowLe = rowGo.GetComponent<LayoutElement>();
+        rowLe.minHeight = 32f;
+        rowLe.preferredHeight = 32f;
+        rowLe.flexibleWidth = 1f;
+
+        HorizontalLayoutGroup h = rowGo.GetComponent<HorizontalLayoutGroup>();
+        h.padding = new RectOffset(6, 6, 2, 2);
+        h.spacing = 8;
+        h.childAlignment = TextAnchor.MiddleCenter;
+        h.childControlWidth = true;
+        h.childControlHeight = true;
+        h.childForceExpandWidth = true;
+        h.childForceExpandHeight = true;
+
+        MapSizePresetRowController.BuildRowContent(rowGo.transform, font, theme);
+        rowGo.AddComponent<MapSizePresetRowController>();
     }
 
     /// <summary> Matches Pause / settings strip styling on scene spawn buttons and Quit. </summary>

@@ -200,10 +200,6 @@ public class SimulationSettingsStore : MonoBehaviour
         map.startPlants = Current.plant.startingPopulation;
         map.startGrazers = Current.grazer.startingPopulation;
         map.startPredators = Current.predator.startingPopulation;
-
-        UIHandler ui = FindFirstObjectByType<UIHandler>();
-        if (ui == null)
-            return;
     }
 
     void ApplyEcosystem()

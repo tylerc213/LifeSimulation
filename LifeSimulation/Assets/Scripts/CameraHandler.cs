@@ -27,11 +27,20 @@ public class CameraHandler : MonoBehaviour
     public float acceleration = 10f;
 
     [Header("Zoom")]
-    public float zoomSpeed = 10f;
+    public float zoomSpeed = 28f;
     public float minSize = 5f;
     public float maxSize = 120f;
 
+    [Tooltip("Multiplies map half-extent for pan limits so the viewport edge is not glued to the terrain (1 = tight to map).")]
+    [SerializeField] float panBoundsMargin = 2.5f;
+
     private float _halfMap;
+    private float _panHalfX;
+    private float _panHalfY;
+    /// <summary> Pan/clamp origin; updated when the tilemap bounds are known so limits stay aligned with the map. </summary>
+    private float _panOriginX;
+    private float _panOriginY;
+
     private Rigidbody2D _rb;
     private Camera _cam;
     private Vector2 _input;
@@ -43,16 +52,49 @@ public class CameraHandler : MonoBehaviour
         _cam = GetComponentInChildren<Camera>();
         _rb.freezeRotation = true;
 
-        // Set the boundary based on the selection
+        ApplyPresetHalfMap();
+    }
+
+    /// <summary> Re-applies tier half-size and max zoom from <see cref="selectedSize"/> (e.g. when the preset changes in the UI). </summary>
+    public void ApplyPresetHalfMap()
+    {
         switch (selectedSize)
         {
-            case MapSize.Small: _halfMap = 75f; break;
-            case MapSize.Medium: _halfMap = 150f; break;
-            case MapSize.Large: _halfMap = 250f; break;
+            case MapSize.Small: _halfMap = 25f; break;
+            case MapSize.Medium: _halfMap = 50f; break;
+            case MapSize.Large: _halfMap = 150f; break;
         }
 
-        // Lock maxSize to the half-height so they can't zoom out past the map
-        maxSize = _halfMap;
+        float margin = Mathf.Max(1f, panBoundsMargin);
+        _panHalfX = _halfMap * margin;
+        _panHalfY = _halfMap * margin;
+        _panOriginX = 0f;
+        _panOriginY = 0f;
+    }
+
+    /// <summary> Call after <see cref="BoundaryManager.SetMapBounds"/> so the rig sits on the map center (pan limits use the same preset half-size as before). </summary>
+    public void AlignPanOriginToMapBounds()
+    {
+        float margin = Mathf.Max(1f, panBoundsMargin);
+
+        if (BoundaryManager.Instance == null || !BoundaryManager.Instance.HasMapBounds)
+        {
+            _panOriginX = 0f;
+            _panOriginY = 0f;
+            _panHalfX = _halfMap * margin;
+            _panHalfY = _halfMap * margin;
+            return;
+        }
+
+        BoundaryManager b = BoundaryManager.Instance;
+        _panOriginX = (b.MinX + b.MaxX) * 0.5f;
+        _panOriginY = (b.MinY + b.MaxY) * 0.5f;
+
+        _panHalfX = (b.MaxX - b.MinX) * 0.5f * margin;
+        _panHalfY = (b.MaxY - b.MinY) * 0.5f * margin;
+
+        transform.position = new Vector3(_panOriginX, _panOriginY, transform.position.z);
+        ApplyBoundaries();
     }
 
     /// <summary> Captures user input </summary>
@@ -82,14 +124,12 @@ public class CameraHandler : MonoBehaviour
         float camHalfHeight = _cam.orthographicSize;
         float camHalfWidth = camHalfHeight * _cam.aspect;
 
-        // Determine how far the center can move before an edge hits the map limit
-        // We use Mathf.Max(0, ...) to lock the camera to 0 if the view is too wide
-        float limitX = Mathf.Max(0, _halfMap - camHalfWidth);
-        float limitY = Mathf.Max(0, _halfMap - camHalfHeight);
+        // How far the rig can move before the view rect hits the (loosened) pan box
+        float limitX = Mathf.Max(0, _panHalfX - camHalfWidth);
+        float limitY = Mathf.Max(0, _panHalfY - camHalfHeight);
 
-        // Symmetric clamp centered at 0,0
-        float clampedX = Mathf.Clamp(transform.position.x, -limitX, limitX);
-        float clampedY = Mathf.Clamp(transform.position.y, -limitY, limitY);
+        float clampedX = Mathf.Clamp(transform.position.x, _panOriginX - limitX, _panOriginX + limitX);
+        float clampedY = Mathf.Clamp(transform.position.y, _panOriginY - limitY, _panOriginY + limitY);
 
         transform.position = new Vector3(clampedX, clampedY, transform.position.z);
     }

@@ -26,6 +26,9 @@ public class BoundaryManager : MonoBehaviour
     private Camera _cam;
     private bool _usingMapBounds = false;
 
+    /// <summary> True after <see cref="SetMapBounds"/> — agents use fixed map rect, not the camera viewport. </summary>
+    public bool HasMapBounds => _usingMapBounds;
+
     private void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }

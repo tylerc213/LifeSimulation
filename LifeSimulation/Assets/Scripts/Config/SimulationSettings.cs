@@ -55,8 +55,8 @@ public class TerrainSettingsData
 
     [Min(1)] public int obstacleMinCluster = 1;
     [Min(1)] public int obstacleMaxCluster = 2;
-    [Min(1)] public int mapWidth = 250;
-    [Min(1)] public int mapHeight = 250;
+    [Min(1)] public int mapWidth = 100;
+    [Min(1)] public int mapHeight = 100;
     [Range(0.02f, 0.3f)] public float perlinScale = 0.16f;
 }
 

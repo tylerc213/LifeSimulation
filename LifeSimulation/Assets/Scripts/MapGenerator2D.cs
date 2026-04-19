@@ -68,15 +68,15 @@ public class MapGenerator2D : MonoBehaviour
         HasSimulationStarted = false;
 
         // Determine dimensions from central spectator settings
-        int sizeDim = 500;
+        int sizeDim = 300;
         var camHandler = FindFirstObjectByType<CameraHandler>();
         if (camHandler != null)
         {
             switch (camHandler.selectedSize)
             {
-                case CameraHandler.MapSize.Small: sizeDim = 150; break;
-                case CameraHandler.MapSize.Medium: sizeDim = 300; break;
-                case CameraHandler.MapSize.Large: sizeDim = 500; break;
+                case CameraHandler.MapSize.Small: sizeDim = 50; break;
+                case CameraHandler.MapSize.Medium: sizeDim = 100; break;
+                case CameraHandler.MapSize.Large: sizeDim = 300; break;
             }
         }
 
@@ -122,7 +122,8 @@ public class MapGenerator2D : MonoBehaviour
                 squareTilemap.SetTileFlags(tilePos, TileFlags.None);
                 squareTilemap.SetColor(tilePos, tileColor);
 
-                _openTiles.Add(new Vector3(x + 0.5f, y + 0.5f, 0));
+                Vector3 worldCenter = squareTilemap.GetCellCenterWorld(tilePos);
+                _openTiles.Add(worldCenter);
             }
         }
 
@@ -131,6 +132,9 @@ public class MapGenerator2D : MonoBehaviour
         // and Clamp() use the full map area, not just the camera viewport.
         if (BoundaryManager.Instance != null)
             BoundaryManager.Instance.SetMapBounds(squareTilemap);
+
+        if (camHandler != null)
+            camHandler.AlignPanOriginToMapBounds();
 
         // ── Obstacle generation ───────────────────────────────────────────────
         if (obstaclePrefab != null)
