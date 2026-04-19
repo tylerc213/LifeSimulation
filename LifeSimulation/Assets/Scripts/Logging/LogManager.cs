@@ -64,6 +64,59 @@ public class LogManager : MonoBehaviour
         PopSnapshot snapshot = popTracker.GetSnapshot(currentTick);
 
         simulationLogger.SaveToFile(snapshot);
+        LogPopulationEvents(snapshot, currentTick);
+    }
+
+    /// <summary> Extinction / endangered / overpopulation lines — same rules as periodic logging. </summary>
+    void LogPopulationEvents(PopSnapshot snapshot, int tick)
+    {
+        // Extinction Events
+        if (snapshot.plantCount == 0)
+        {
+            simulationLogger.LogEvent("Extinction", "Plants have gone extinct", tick);
+        }
+
+        if (snapshot.grazerCount == 0)
+        {
+            simulationLogger.LogEvent("Extinction", "Grazers have gone extinct", tick);
+        }
+
+        if (snapshot.predatorCount == 0)
+        {
+            simulationLogger.LogEvent("Extinction", "Predators have gone extinct", tick);
+        }
+
+        // Endangered Events
+        if (snapshot.plantCount < 10)
+        {
+            simulationLogger.LogEvent("Endangered", "Plants population currently endangered", tick);
+        }
+
+        if (snapshot.grazerCount < 15)
+        {
+            simulationLogger.LogEvent("Endangered", "Grazers population currently endangered", tick);
+        }
+
+        if (snapshot.predatorCount < 5)
+        {
+            simulationLogger.LogEvent("Endangered", "Predators population currently endangered", tick);
+        }
+
+        // Overpopulation Events
+        if (snapshot.plantCount > 140)
+        {
+            simulationLogger.LogEvent("OverPopulation", "The plants have expanded beyond expectation", tick);
+        }
+
+        if (snapshot.grazerCount > 40)
+        {
+            simulationLogger.LogEvent("OverPopulation", "The grazers have expanded beyond expectation", tick);
+        }
+
+        if (snapshot.predatorCount > 18)
+        {
+            simulationLogger.LogEvent("OverPopulation", "The predators have expanded beyond expectation", tick);
+        }
     }
 
     /// <summary>
@@ -95,53 +148,7 @@ public class LogManager : MonoBehaviour
             // Sends snapshot to SimulationLogger for file storage
             simulationLogger.SaveToFile(snapshot);
 
-            // Extinction Events
-            if (snapshot.plantCount == 0)
-            {
-                simulationLogger.LogEvent("Extinction", "Plants have gone extinct",  currentTick);
-            }
-
-            if (snapshot.grazerCount == 0)
-            {
-                simulationLogger.LogEvent("Extinction", "Grazers have gone extinct", currentTick);
-            }
-
-            if (snapshot.predatorCount == 0)
-            {
-                simulationLogger.LogEvent("Extinction", "Predators have gone extinct", currentTick);
-            }
-
-            // Endangered Events
-            if (snapshot.plantCount < 10)
-            {
-                simulationLogger.LogEvent("Endangered", "Plants population currently endangered", currentTick);
-            }
-
-            if (snapshot.grazerCount < 15)
-            {
-                simulationLogger.LogEvent("Endangered", "Grazers population currently endangered", currentTick);
-            }
-
-            if (snapshot.predatorCount < 5)
-            {
-                simulationLogger.LogEvent("Endangered", "Predators population currently endangered", currentTick);
-            }
-
-            // Overpopulation Events
-            if (snapshot.plantCount > 140)
-            {
-                simulationLogger.LogEvent("OverPopulation", "The plants have expanded beyond expectation", currentTick);
-            }
-
-            if (snapshot.grazerCount > 40)
-            {
-                simulationLogger.LogEvent("OverPopulation", "The grazers have expanded beyond expectation", currentTick);
-            }
-
-            if (snapshot.predatorCount > 18)
-            {
-                simulationLogger.LogEvent("OverPopulation", "The predators have expanded beyond expectation", currentTick);
-            }
+            LogPopulationEvents(snapshot, currentTick);
 
         }
     }

@@ -192,11 +192,6 @@ public class WorldEditor : MonoBehaviour
                 break;
         }
 
-        if (id != "" && SimulationManager.Instance != null)
-        {
-            SimulationManager.Instance.UpdatePopulation(id, 1);
-        }
-
         return true;
     }
 
