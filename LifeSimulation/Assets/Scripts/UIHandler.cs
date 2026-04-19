@@ -63,7 +63,8 @@ public class UIHandler : MonoBehaviour
         {
             "SpawnGrazerButton",
             "SpawnPredatorButton",
-            "SpawnPlantButton"
+            "SpawnPlantButton",
+            "SpawnObstacleButton"
         };
 
         foreach (string buttonName in buttonNames)
