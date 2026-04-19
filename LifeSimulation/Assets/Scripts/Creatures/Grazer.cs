@@ -20,7 +20,8 @@ public class Grazer : EntityBase
     [SerializeField] private float predatorDetectRadius = 7f;
 
     [Header("Eating")]
-    [SerializeField] private float eatDistance = 0.4f;
+    [Tooltip("Max gap between grazer and plant colliders to bite (not center-to-center). Overlapping colliders always count as in range.")]
+    [SerializeField] private float eatDistance = 0.45f;
     [SerializeField] private float eatCooldown = 1f;
 
     [Header("Reproduction")]
@@ -35,6 +36,7 @@ public class Grazer : EntityBase
     private GrazerGenetics _genetics;
     private StateLabel _label;
     private VisionCone _cone;
+    private Collider2D _selfCollider;
     private Vector2 _wanderTarget;
     private float _wanderTimer;
     private float _eatTimer;
@@ -69,6 +71,7 @@ public class Grazer : EntityBase
         _genetics = GetComponent<GrazerGenetics>();
         _label = GetComponentInChildren<StateLabel>();
         _cone = GetComponent<VisionCone>();
+        _selfCollider = GetComponent<Collider2D>();
         _reproTimer = reproductionCooldown;
         PickNewWanderTarget();
         _lastPosition = transform.position;
@@ -219,9 +222,11 @@ public class Grazer : EntityBase
         if (_targetPlant == null) { _state = State.Wander; return; }
 
         Vector2 dir = (Vector2)_targetPlant.transform.position - (Vector2)transform.position;
-        float dist = dir.magnitude;
 
-        if (dist < eatDistance)
+        // Use collider separation, not transform distance: sprite centers stay
+        // ~0.7–1.4+ units apart when boxes are flush/overlapping, so a small
+        // eatDistance vs. center distance never triggers eating.
+        if (IsWithinEatRange(_targetPlant))
         {
             TryEat(_targetPlant);
             _rb.linearVelocity = Vector2.zero;
@@ -263,7 +268,7 @@ public class Grazer : EntityBase
         if (_eatTimer > 0f || plant == null) return;
 
         // Attractiveness check — bitter/tasty/poisonous affect willingness
-        if (UnityEngine.Random.value > plant.EatAttractiveness) { _targetPlant = null; return; }
+        if (UnityEngine.Random.value > plant.EatAttractiveness) return;
 
         _eatTimer = eatCooldown;
 
@@ -326,6 +331,23 @@ public class Grazer : EntityBase
 
     private void CheckIfStuck()
     {
+        // While seeking food, standing still at (or pressed against) the plant is
+        // expected — velocity is zero when eating, and colliders may prevent reaching
+        // the exact center. Do not treat that as "stuck" or we abandon the plant
+        // after a few seconds and eating becomes rare.
+        if (_state == State.SeekPlant && _targetPlant != null)
+        {
+            float d = Mathf.Min(
+                GetPlantColliderSeparation(_targetPlant),
+                Vector2.Distance(transform.position, _targetPlant.transform.position));
+            if (d <= Mathf.Max(eatDistance * 3f, 1.25f))
+            {
+                _stuckTimer = 0f;
+                _lastPosition = transform.position;
+                return;
+            }
+        }
+
         // Determine the current goal position based on state
         Vector2 goal;
         switch (_state)
@@ -429,6 +451,26 @@ public class Grazer : EntityBase
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /// <summary>Closest distance between grazer and plant hulls; 0 if overlapping.</summary>
+    private float GetPlantColliderSeparation(Plant plant)
+    {
+        if (plant == null) return float.MaxValue;
+        Collider2D plantCol = plant.GetComponent<Collider2D>()
+            ?? plant.GetComponentInChildren<Collider2D>();
+        if (_selfCollider == null || plantCol == null)
+            return Vector2.Distance(transform.position, plant.transform.position);
+
+        ColliderDistance2D cd = Physics2D.Distance(_selfCollider, plantCol);
+        if (cd.isOverlapped) return 0f;
+        return cd.distance;
+    }
+
+    private bool IsWithinEatRange(Plant plant)
+    {
+        return GetPlantColliderSeparation(plant) <= eatDistance;
+    }
+
     private Transform FindNearest(string tag, float radius)
     {
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, radius);
@@ -471,10 +513,9 @@ public class Grazer : EntityBase
         foreach (var h in hits)
         {
             if (h.isTrigger) continue;
-            if (!h.CompareTag("Plant")) continue;
-            Plant p = h.GetComponent<Plant>();
+            Plant p = h.GetComponentInParent<Plant>();
             if (p == null || !p.IsFullyGrown) continue;
-            float dist = Vector2.Distance(transform.position, h.transform.position);
+            float dist = Vector2.Distance(transform.position, p.transform.position);
             if (dist > plantDetectRadius) continue;
             float score = p.EatAttractiveness / (dist + 0.1f);
             if (score > bestScore) { bestScore = score; best = p; }
