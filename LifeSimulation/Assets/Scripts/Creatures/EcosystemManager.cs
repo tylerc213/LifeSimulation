@@ -44,7 +44,12 @@ public class EcosystemManager : MonoBehaviour
     private int _grazerCount;
     private int _predatorCount;
 
-    /// <summary> Current counts for logging / UI (SimulationManager.population is only updated by editor placement).</summary>
+    // Must match PopTracker keys / tags used for SimulationManager.population.
+    private const string PlantPopulationKey = "Plant";
+    private const string GrazerPopulationKey = "Grazer";
+    private const string PredatorPopulationKey = "Predator";
+
+    /// <summary> Current counts for logging / UI; kept in sync with <see cref="SimulationManager.population"/> on spawn/death. </summary>
     public int PlantCount => _plantCount;
     public int GrazerCount => _grazerCount;
     public int PredatorCount => _predatorCount;
@@ -190,8 +195,13 @@ public class EcosystemManager : MonoBehaviour
         if (plantPrefab == null) return;
         GameObject go = Instantiate(plantPrefab, position, Quaternion.identity);
         _plantCount++;
+        SimulationManager.Instance?.UpdatePopulation(PlantPopulationKey, 1);
         PlantDeathProxy proxy = go.AddComponent<PlantDeathProxy>();
-        proxy.Init(() => _plantCount--);
+        proxy.Init(() =>
+        {
+            _plantCount--;
+            SimulationManager.Instance?.UpdatePopulation(PlantPopulationKey, -1);
+        });
         // Icons built after one frame so PlantGenetics.Awake has run
         go.GetComponent<TraitIconDisplay>()?.Refresh();
     }
@@ -203,7 +213,12 @@ public class EcosystemManager : MonoBehaviour
             spawnPos = BoundaryManager.Instance.Clamp(spawnPos);
         GameObject go = Instantiate(grazerprefab, spawnPos, Quaternion.identity);
         _grazerCount++;
-        go.GetComponent<EntityBase>()?.OnDeath.AddListener(() => _grazerCount--);
+        SimulationManager.Instance?.UpdatePopulation(GrazerPopulationKey, 1);
+        go.GetComponent<EntityBase>()?.OnDeath.AddListener(() =>
+        {
+            _grazerCount--;
+            SimulationManager.Instance?.UpdatePopulation(GrazerPopulationKey, -1);
+        });
         if (genome != null)
         {
             go.GetComponent<GrazerGenetics>()?.Init(genome);
@@ -218,7 +233,12 @@ public class EcosystemManager : MonoBehaviour
             spawnPos = BoundaryManager.Instance.Clamp(spawnPos);
         GameObject go = Instantiate(predatorPrefab, spawnPos, Quaternion.identity);
         _predatorCount++;
-        go.GetComponent<EntityBase>()?.OnDeath.AddListener(() => _predatorCount--);
+        SimulationManager.Instance?.UpdatePopulation(PredatorPopulationKey, 1);
+        go.GetComponent<EntityBase>()?.OnDeath.AddListener(() =>
+        {
+            _predatorCount--;
+            SimulationManager.Instance?.UpdatePopulation(PredatorPopulationKey, -1);
+        });
         if (genome != null)
         {
             go.GetComponent<PredatorGenetics>()?.Init(genome);

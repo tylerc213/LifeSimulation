@@ -59,6 +59,23 @@ public class SimulationManager : MonoBehaviour
 
     public bool IsHalted => isHalted;
 
+    /// <summary> Skipped during map regen so destroy callbacks do not desync counts or trigger game over. </summary>
+    public bool SuppressPopulationSync { get; private set; }
+
+    /// <summary> Clears per-species tallies, clears halt, and resumes time scale — call at the start of a new map. </summary>
+    public void ResetPopulationState()
+    {
+        population.Clear();
+        isHalted = false;
+        SuppressPopulationSync = false;
+        RefreshTimeScale();
+    }
+
+    public void SetSuppressPopulationSync(bool suppress)
+    {
+        SuppressPopulationSync = suppress;
+    }
+
     void RefreshTimeScale()
     {
         if (isHalted)
@@ -80,6 +97,9 @@ public class SimulationManager : MonoBehaviour
 
     public void UpdatePopulation(string uniqueID, int change)
     {
+        if (SuppressPopulationSync)
+            return;
+
         if (!population.ContainsKey(uniqueID))
         {
             population.Add(uniqueID, 0);

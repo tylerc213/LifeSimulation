@@ -84,6 +84,10 @@ public class MapGenerator2D : MonoBehaviour
         IsMapReady = false;
         HasSimulationStarted = false;
 
+        SimulationManager sim = SimulationManager.Instance;
+        sim?.ResetPopulationState();
+        sim?.SetSuppressPopulationSync(true);
+
         // Determine dimensions from central spectator settings
         int sizeDim = 300;
         var camHandler = FindFirstObjectByType<CameraHandler>();
@@ -106,6 +110,8 @@ public class MapGenerator2D : MonoBehaviour
         DestroyTagged("Grazer");
         DestroyTagged("Predator");
         DestroyTagged("Obstacle");
+
+        sim?.SetSuppressPopulationSync(false);
 
         // Initialize unique seed for sim run
         UnityEngine.Random.InitState((int)DateTime.Now.Ticks);
