@@ -303,9 +303,9 @@ MonoBehaviour:
   fleeSpeed: 1.5
   wanderRadius: 8
   wanderInterval: 4
-  plantDetectRadius: 5
-  predatorDetectRadius: 5
-  eatDistance: 1
+  plantDetectRadius: 25
+  predatorDetectRadius: 15
+  eatDistance: 2
   eatCooldown: 1
   reproductionHungerThreshold: 75
   reproductionCooldown: 25
@@ -321,7 +321,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a1af5f3230f733e48a99dafd4f965470, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SteeringAvoidance
-  lookAheadDistance: 2
+  lookAheadDistance: 12
   agentHalfWidth: 0.2
   agentHalfHeight: 0.2
   rayCount: 7
@@ -404,7 +404,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 61e3b02e1551a474f9192e7f57449217, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VisionCone
-  radius: 1
+  radius: 4
   angle: 90
   segments: 16
   facingSmoothing: 8
