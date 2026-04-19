@@ -19,6 +19,7 @@ public class PredatorGenetics : MonoBehaviour
 
     public bool IsVenomous { get; private set; } = false;
     public bool IsAmbusher { get; private set; } = false;
+    public bool IsHerdHunter { get; private set; }
     public bool IsApexPredator { get; private set; } = false;
 
     public const float VenomDamagePerSec = 5f;
@@ -42,33 +43,41 @@ public class PredatorGenetics : MonoBehaviour
 
     private void ApplyTraits()
     {
+        float exprStat = ExpressionStrengthRuntime.NormalizedStrength(ExpressionStrengthRuntime.PredatorStat);
+        float exprRare = ExpressionStrengthRuntime.NormalizedStrength(ExpressionStrengthRuntime.PredatorRare);
+        float exprApex = ExpressionStrengthRuntime.NormalizedStrength(ExpressionStrengthRuntime.PredatorApex);
+
         // ── Nimble (dominant) ──────────────────────────────────────────────
-        if (Genome.IsExpressed(TraitType.PredatorNimble))
-            SpeedMultiplier *= 1.2f;
+        if (Genome.IsExpressed(TraitType.PredatorNimble) && exprStat > 0f)
+            SpeedMultiplier *= 1f + 0.2f * exprStat;
 
         // ── Strong (dominant) ──────────────────────────────────────────────
-        if (Genome.IsExpressed(TraitType.PredatorStrong))
-            DamageMultiplier *= 1.2f;
+        if (Genome.IsExpressed(TraitType.PredatorStrong) && exprStat > 0f)
+            DamageMultiplier *= 1f + 0.2f * exprStat;
 
         // ── Thick-Skinned (dominant) ───────────────────────────────────────
-        if (Genome.IsExpressed(TraitType.PredatorThickSkinned))
-            HealthMultiplier *= 1.2f;
+        if (Genome.IsExpressed(TraitType.PredatorThickSkinned) && exprStat > 0f)
+            HealthMultiplier *= 1f + 0.2f * exprStat;
 
         // ── Venomous (recessive) ───────────────────────────────────────────
-        IsVenomous = Genome.IsExpressed(TraitType.Venomous);
+        IsVenomous = Genome.IsExpressed(TraitType.Venomous) && exprRare > 0f;
         if (IsVenomous && _sr != null)
             _sr.color = new Color(0.4f, 0.8f, 0.3f);  // green tint
 
         // ── Ambusher (recessive) ───────────────────────────────────────────
-        IsAmbusher = Genome.IsExpressed(TraitType.Ambusher);
+        IsAmbusher = Genome.IsExpressed(TraitType.Ambusher) && exprRare > 0f;
+
+        IsHerdHunter = Genome.IsExpressed(TraitType.HerdHunter) && exprRare > 0f;
 
         // ── Apex Predator (recessive) ──────────────────────────────────────
-        if (Genome.IsExpressed(TraitType.ApexPredator))
+        if (Genome.IsExpressed(TraitType.ApexPredator) && exprApex > 0f)
         {
             IsApexPredator = true;
-            SpeedMultiplier *= ApexMult;
-            HealthMultiplier *= ApexMult;
-            DamageMultiplier *= ApexMult;
+            float apexBlend = Mathf.Clamp01(exprApex);
+            float apexFactor = Mathf.Lerp(1f, ApexMult, apexBlend);
+            SpeedMultiplier *= apexFactor;
+            HealthMultiplier *= apexFactor;
+            DamageMultiplier *= apexFactor;
             if (_sr != null) _sr.color = new Color(0.9f, 0.1f, 0.1f);
         }
 

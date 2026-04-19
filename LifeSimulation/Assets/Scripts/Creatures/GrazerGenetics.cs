@@ -16,6 +16,8 @@ public class GrazerGenetics : MonoBehaviour
 
     public bool HasCamouflage { get; private set; } = false;
     public bool HasSpiky { get; private set; } = false;
+    public bool HasHerdMentality { get; private set; }
+    public bool HasHerdLeader { get; private set; }
 
     public const float CamouflageChance = 0.75f;
     public const float SpikyReflect = 0.50f;
@@ -38,13 +40,22 @@ public class GrazerGenetics : MonoBehaviour
 
     private void ApplyTraits()
     {
-        // ── Stats ──────────────────────────────────────────────────────────────
-        if (Genome.IsExpressed(TraitType.GrazerNimble)) SpeedMultiplier *= 1.2f;
-        if (Genome.IsExpressed(TraitType.GrazerStrong)) DamageMultiplier *= 1.2f;
-        if (Genome.IsExpressed(TraitType.GrazerThickSkinned)) HealthMultiplier *= 1.2f;
+        float exprStat = ExpressionStrengthRuntime.NormalizedStrength(ExpressionStrengthRuntime.GrazerStat);
+        float exprRare = ExpressionStrengthRuntime.NormalizedStrength(ExpressionStrengthRuntime.GrazerRare);
+        float exprPack = ExpressionStrengthRuntime.NormalizedStrength(ExpressionStrengthRuntime.GrazerPack);
 
-        HasCamouflage = Genome.IsExpressed(TraitType.Camouflage);
-        HasSpiky = Genome.IsExpressed(TraitType.Spiky);
+        // ── Stats ──────────────────────────────────────────────────────────────
+        if (Genome.IsExpressed(TraitType.GrazerNimble) && exprStat > 0f)
+            SpeedMultiplier *= 1f + 0.2f * exprStat;
+        if (Genome.IsExpressed(TraitType.GrazerStrong) && exprStat > 0f)
+            DamageMultiplier *= 1f + 0.2f * exprStat;
+        if (Genome.IsExpressed(TraitType.GrazerThickSkinned) && exprStat > 0f)
+            HealthMultiplier *= 1f + 0.2f * exprStat;
+
+        HasCamouflage = Genome.IsExpressed(TraitType.Camouflage) && exprRare > 0f;
+        HasSpiky = Genome.IsExpressed(TraitType.Spiky) && exprRare > 0f;
+        HasHerdMentality = Genome.IsExpressed(TraitType.HerdMentality) && exprPack > 0f;
+        HasHerdLeader = Genome.IsExpressed(TraitType.HerdLeader) && exprPack > 0f;
 
         EntityBase entity = GetComponent<EntityBase>();
         if (entity != null)

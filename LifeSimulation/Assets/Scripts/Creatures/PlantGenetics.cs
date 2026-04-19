@@ -44,15 +44,19 @@ public class PlantGenetics : MonoBehaviour
 
     private void ApplyTraits()
     {
+        float exprPrimary = ExpressionStrengthRuntime.NormalizedStrength(ExpressionStrengthRuntime.PlantPrimary);
+        float exprSecondary = ExpressionStrengthRuntime.NormalizedStrength(ExpressionStrengthRuntime.PlantSecondary);
+        float exprDefense = ExpressionStrengthRuntime.NormalizedStrength(ExpressionStrengthRuntime.PlantDefense);
+
         // ── Leaf Size ──────────────────────────────────────────────────────
         // Encoded via allele pair: AA=large, Aa=medium, aa=small
         Gene leafGene = Genome.Get(TraitType.LeafSize);
         if (leafGene != null)
         {
             int leafLevel = (leafGene.AlleleA ? 1 : 0) + (leafGene.AlleleB ? 1 : 0); // 0,1,2
-            NutritionMultiplier = 0.7f + leafLevel * 0.3f;   // small=0.7, med=1.0, large=1.3
-            float scaleBonus = 1f + leafLevel * 0.15f;
-            transform.localScale *= scaleBonus;
+            float baseNut = 0.7f + leafLevel * 0.3f;   // small=0.7, med=1.0, large=1.3
+            NutritionMultiplier = 1f + (baseNut - 1f) * exprPrimary;
+            transform.localScale *= 1f + leafLevel * 0.15f * exprPrimary;
 
             // Tint: small=yellow, medium=green, large=dark green
             if (_sr != null)
@@ -67,24 +71,24 @@ public class PlantGenetics : MonoBehaviour
         }
 
         // ── Tasty (dominant) ───────────────────────────────────────────────
-        if (Genome.IsExpressed(TraitType.Tasty))
-            TastyMultiplier = 1.5f;
+        if (Genome.IsExpressed(TraitType.Tasty) && exprSecondary > 0f)
+            TastyMultiplier = 1f + 0.5f * exprSecondary;
 
         // ── Bitter (recessive) ─────────────────────────────────────────────
-        if (Genome.IsExpressed(TraitType.Bitter))
-            BitterMultiplier = 0.4f;
+        if (Genome.IsExpressed(TraitType.Bitter) && exprSecondary > 0f)
+            BitterMultiplier = Mathf.Lerp(1f, 0.4f, Mathf.Clamp01(exprSecondary));
 
         // ── Poisonous (recessive) ──────────────────────────────────────────
         // Poisonous overrides bitter/tasty — grazers really don't want to eat it
-        if (Genome.IsExpressed(TraitType.Poisonous))
+        if (Genome.IsExpressed(TraitType.Poisonous) && exprDefense > 0f)
         {
             IsPoisonous = true;
-            BitterMultiplier = 0.1f;   // strongly deters eating
+            BitterMultiplier = Mathf.Lerp(1f, 0.1f, Mathf.Clamp01(exprDefense));
             if (_sr != null) _sr.color = new Color(0.5f, 0.1f, 0.5f);  // purple tint
         }
 
         // ── Resilient (dominant) ───────────────────────────────────────────
-        IsResilient = Genome.IsExpressed(TraitType.Resilient);
+        IsResilient = Genome.IsExpressed(TraitType.Resilient) && exprDefense > 0f;
     }
 
     /// <summary>
