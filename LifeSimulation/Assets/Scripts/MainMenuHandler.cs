@@ -55,7 +55,7 @@ public class MainMenuHandler : MonoBehaviour
     public void OpenCredits()
     {
         Debug.Log("Open Credits Selected");
-        //SceneManager.LoadScene(creditsSceneName);
+        SceneManager.LoadScene(creditsSceneName);
     }
 
     /// <summary> ends application </summary>
