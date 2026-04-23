@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 
 /// <summary>
@@ -260,9 +260,17 @@ public class Predator : EntityBase
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, 3f);
         foreach (var h in hits)
         {
-            if (!h.CompareTag("Predator") || h.gameObject == gameObject) continue;
-            PredatorGenetics g = h.GetComponent<PredatorGenetics>();
-            if (g != null) return g.Genome;
+            if (h.isTrigger) continue;
+
+            Transform root = h.transform;
+            while (root.parent != null && !root.CompareTag("Predator"))
+                root = root.parent;
+
+            if (!root.CompareTag("Predator")) continue;
+            if (root == transform) continue;  // skip self
+
+            PredatorGenetics g = root.GetComponent<PredatorGenetics>();
+            if (g != null && g.Genome != null) return g.Genome;
         }
         return null;
     }
