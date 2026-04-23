@@ -112,7 +112,7 @@ public class MapSizePresetRowController : MonoBehaviour
         if (cameraHandler != null)
         {
             cameraHandler.selectedSize = size;
-            cameraHandler.ApplyPresetHalfMap();
+            cameraHandler.UpdateTiers();
         }
     }
 

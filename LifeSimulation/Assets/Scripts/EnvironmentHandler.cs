@@ -36,6 +36,23 @@ public class EnvironmentHandler : MonoBehaviour
     public Gradient dayNightGradient;
     public Color winterTint = new Color(0.8f, 0.9f, 1.0f); // Slight blue tint for winter
 
+    [Header("Seasonal Visual Palettes")]
+    public SeasonalPalette springPalette = new SeasonalPalette(new Color(0.2f, 0.8f, 0.2f), new Color(0.2f, 0.5f, 1.0f));
+    public SeasonalPalette summerPalette = new SeasonalPalette(new Color(0.82f, 0.71f, 0.55f), new Color(0.1f, 0.2f, 0.5f)); // Classic Tan/Blue
+    public SeasonalPalette autumnPalette = new SeasonalPalette(new Color(0.7f, 0.4f, 0.1f), new Color(0.1f, 0.2f, 0.3f));
+    public SeasonalPalette winterPalette = new SeasonalPalette(Color.white, new Color(0.7f, 0.9f, 1.0f));
+
+    public SeasonalPalette GetCurrentPalette()
+    {
+        return currentSeason switch
+        {
+            Season.Spring => springPalette,
+            Season.Autumn => autumnPalette,
+            Season.Winter => winterPalette,
+            _ => summerPalette
+        };
+    }
+
     /// <summary> 0.0 to 1.0 representing current sun strength (0 at night) </summary>
     public float SunlightIntensity { get; private set; }
 
@@ -70,6 +87,14 @@ public class EnvironmentHandler : MonoBehaviour
     {
         UpdateClock();
         UpdateLighting();
+
+        // DEBUG: Press 'N' to skip to the next season
+        if (Input.GetKeyDown(KeyCode.N))
+        {
+            totalDaysPassed += (int)seasonLengthInDays;
+            CheckSeasonChange();
+            Debug.Log($"Season skipped! Current Season: {currentSeason}");
+        }
     }
 
     /// <summary> Increments time and handles day/season rollovers </summary>
@@ -92,8 +117,18 @@ public class EnvironmentHandler : MonoBehaviour
     /// <summary> Transitions seasons based on day count </summary>
     private void CheckSeasonChange()
     {
+        Season previousSeason = currentSeason;
         int seasonIndex = (int)(totalDaysPassed / seasonLengthInDays) % 4;
         currentSeason = (Season)seasonIndex;
+
+        // If the season actually changed, tell the MapGenerator to repaint
+        if (currentSeason != previousSeason)
+        {
+            if (MapGenerator2D.Instance != null)
+            {
+                MapGenerator2D.Instance.RefreshTileColors();
+            }
+        }
     }
 
     /// <summary> Updates global light color and intensity </summary>
@@ -102,14 +137,19 @@ public class EnvironmentHandler : MonoBehaviour
         if (globalLight == null) return;
 
         Color baseColor = dayNightGradient.Evaluate(timeOfDay);
+        
+        // Dynamic seasonal lighting tints
+        Color seasonalTint = currentSeason switch
+        {
+            Season.Spring => new Color(0.9f, 1.0f, 0.9f), // Fresh/Bright
+            Season.Summer => new Color(1.0f, 1.0f, 0.8f), // Warm/Golden
+            Season.Autumn => new Color(1.0f, 0.85f, 0.7f), // Sepia/Orange
+            Season.Winter => winterTint,                   // Original blue tint
+            _ => Color.white
+        };
 
-        // Apply a subtle seasonal tint (e.g., Summer is warmer, Winter is cooler)
-        if (currentSeason == Season.Winter)
-            globalLight.color = Color.Lerp(baseColor, winterTint, 0.3f);
-        else
-            globalLight.color = baseColor;
+        globalLight.color = baseColor * seasonalTint;
 
-        // Dim the light slightly in winter or autumn to reflect shorter/weaker days
         float seasonMultiplier = GetSeasonalGrowthMultiplier();
         globalLight.intensity = Mathf.Lerp(0.2f, 1.2f, SunlightIntensity * seasonMultiplier);
     }
@@ -129,4 +169,12 @@ public class EnvironmentHandler : MonoBehaviour
             _ => 1.0f
         };
     }
+}
+
+[System.Serializable]
+public struct SeasonalPalette
+{
+    public Color landColor;
+    public Color waterColor;
+    public SeasonalPalette(Color land, Color water) { landColor = land; waterColor = water; }
 }

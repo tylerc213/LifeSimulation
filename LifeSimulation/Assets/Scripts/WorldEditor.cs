@@ -168,23 +168,18 @@ public class WorldEditor : MonoBehaviour
 
         Vector3 spawnPos = squareTilemap.GetCellCenterWorld(cellPos);
         spawnPos.z = squareTilemap.transform.position.z;
-        string id = "";
         switch (selection)
         {
             case 1:
-                id = "Grazer";
                 EcosystemManager.Instance.ManualSpawnGrazer(spawnPos);
                 break;
             case 2:
-                id = "Predator";
                 EcosystemManager.Instance.ManualSpawnPredator(spawnPos);
                 break;
             case 3:
-                id = "Plant";
                 EcosystemManager.Instance.ManualSpawnPlant(spawnPos);
                 break;
             case 4:
-                id = "Obstacle";
                 if (obstaclePrefab != null)
                 {
                     Instantiate(obstaclePrefab, spawnPos, Quaternion.identity);

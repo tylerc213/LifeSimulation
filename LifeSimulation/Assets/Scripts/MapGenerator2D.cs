@@ -43,13 +43,16 @@ public class MapGenerator2D : MonoBehaviour
     [Tooltip("Feature size for Perlin noise.")]
     public float perlinScale = 0.1f;
     [Tooltip("0 = least water, 1 = most water (blue tiles).")]
-    [Range(0f,1f)]
+    [Range(0f, 1f)]
     public float waterSpawnRate = 0.5f;
 
     [Header("Initial Population")]
     public int startPlants = 15;
     public int startGrazers = 8;
     public int startPredators = 2;
+
+    private float _currentOffsetX;
+    private float _currentOffsetY;
 
     // Stores world-space centers of all non-obstacle tiles so we can pick
     // random valid spawn positions without landing inside an obstacle.
@@ -115,8 +118,8 @@ public class MapGenerator2D : MonoBehaviour
 
         // Initialize unique seed for sim run
         UnityEngine.Random.InitState((int)DateTime.Now.Ticks);
-        float offsetX = UnityEngine.Random.Range(0f, 99999f);
-        float offsetY = UnityEngine.Random.Range(0f, 99999f);
+        _currentOffsetX = UnityEngine.Random.Range(0f, 99999f);
+        _currentOffsetY = UnityEngine.Random.Range(0f, 99999f);
 
         // calculate offset for centering
         int halfDim = sizeDim / 2;
@@ -131,6 +134,11 @@ public class MapGenerator2D : MonoBehaviour
         squareTilemap.SetTilesBlock(bounds, tileArray);
 
         // ── Tile placement ────────────────────────────────────────────────────
+        // Fetch current seasonal palette from EnvironmentHandler
+        var palette = EnvironmentHandler.Instance != null
+            ? EnvironmentHandler.Instance.GetCurrentPalette()
+            : new SeasonalPalette(Color.tan, new Color(0.1f, 0.2f, 0.5f));
+
         for (int x = -halfDim; x < halfDim; x++)
         {
             for (int y = -halfDim; y < halfDim; y++)
@@ -138,9 +146,10 @@ public class MapGenerator2D : MonoBehaviour
                 Vector3Int tilePos = new Vector3Int(x, y, 0);
                 squareTilemap.SetTile(tilePos, baseSquareTile);
 
-                // Perlin Logic (using +halfDim to keep noise positive)
-                float perlin = Mathf.PerlinNoise((x + halfDim) * perlinScale + offsetX, (y + halfDim) * perlinScale + offsetY);
-                Color tileColor = (perlin > 0.65f) ? new Color(0.1f, 0.2f, 0.5f) : Color.tan;
+                float perlin = Mathf.PerlinNoise((x + halfDim) * perlinScale + _currentOffsetX, (y + halfDim) * perlinScale + _currentOffsetY);
+
+                // Use the Palette colors based on perlin noise (water vs land)
+                Color tileColor = (perlin > 0.65f) ? palette.waterColor : palette.landColor;
 
                 squareTilemap.SetTileFlags(tilePos, TileFlags.None);
                 squareTilemap.SetColor(tilePos, tileColor);
@@ -157,7 +166,7 @@ public class MapGenerator2D : MonoBehaviour
             BoundaryManager.Instance.SetMapBounds(squareTilemap);
 
         if (camHandler != null)
-            camHandler.AlignPanOriginToMapBounds();
+            camHandler.UpdateTiers();
 
         // ── Obstacle generation ───────────────────────────────────────────────
         if (obstaclePrefab != null)
@@ -267,6 +276,40 @@ public class MapGenerator2D : MonoBehaviour
         {
             int j = UnityEngine.Random.Range(0, i + 1);
             (list[i], list[j]) = (list[j], list[i]);
+        }
+    }
+
+    /// <summary> Updates the colors of existing tiles to match the current season </summary>
+    public void RefreshTileColors()
+    {
+        if (squareTilemap == null) return;
+
+        var palette = EnvironmentHandler.Instance != null
+            ? EnvironmentHandler.Instance.GetCurrentPalette()
+            : new SeasonalPalette(Color.tan, new Color(0.1f, 0.2f, 0.5f));
+
+        // We need to fetch the original offsets used during GenerateMap
+        // Since they aren't stored as variables, we have to ensure they are accessible.
+        // For now, let's assume you're using the same perlinScale.
+
+        int halfDim = squareTilemap.cellBounds.size.x / 2;
+
+        foreach (var pos in squareTilemap.cellBounds.allPositionsWithin)
+        {
+            if (squareTilemap.HasTile(pos))
+            {
+                // IMPORTANT: We use the same math from GenerateMap to determine tile type
+                // Note: If you want this to be 100% perfect, you should store the 
+                // offsetX and offsetY as class variables in MapGenerator2D.
+                float perlin = Mathf.PerlinNoise((pos.x + halfDim) * perlinScale + _currentOffsetX, (pos.y + halfDim) * perlinScale + _currentOffsetY);
+
+                bool isWater = perlin > 0.65f;
+
+                Color newColor = isWater ? palette.waterColor : palette.landColor;
+
+                squareTilemap.SetTileFlags(pos, TileFlags.None);
+                squareTilemap.SetColor(pos, newColor);
+            }
         }
     }
 }

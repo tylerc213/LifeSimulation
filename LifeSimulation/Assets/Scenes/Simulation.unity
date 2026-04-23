@@ -1056,7 +1056,6 @@ MonoBehaviour:
   zoomSpeed: 15
   minSize: 5
   maxSize: 60
-  panBoundsMargin: 2.5
 --- !u!50 &591038894
 Rigidbody2D:
   serializedVersion: 5
@@ -1366,6 +1365,18 @@ MonoBehaviour:
     m_NumColorKeys: 2
     m_NumAlphaKeys: 2
   winterTint: {r: 0.8, g: 0.9, b: 1, a: 1}
+  springPalette:
+    landColor: {r: 0.2, g: 0.8, b: 0.2, a: 1}
+    waterColor: {r: 0.2, g: 0.5, b: 1, a: 1}
+  summerPalette:
+    landColor: {r: 0.82, g: 0.71, b: 0.55, a: 1}
+    waterColor: {r: 0.1, g: 0.2, b: 0.5, a: 1}
+  autumnPalette:
+    landColor: {r: 0.7, g: 0.4, b: 0.1, a: 1}
+    waterColor: {r: 0.1, g: 0.2, b: 0.3, a: 1}
+  winterPalette:
+    landColor: {r: 1, g: 1, b: 1, a: 1}
+    waterColor: {r: 0.7, g: 0.9, b: 1, a: 1}
 --- !u!1 &670591979
 GameObject:
   m_ObjectHideFlags: 0
@@ -2053,7 +2064,7 @@ Transform:
   m_GameObject: {fileID: 862791408}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0.5, y: 0.5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
