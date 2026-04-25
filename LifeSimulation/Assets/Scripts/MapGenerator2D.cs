@@ -7,7 +7,7 @@
 // Version:     0.0.1
 //
 // Description:
-//    Generates a square tilemap using a provided seed and specified X/Y dimensions.
+//    Generates a square tilemap set map sizes and random placement of obstacles.
 //    After map generation, spawns initial obstacles, plants, grazers, and predators.
 // -----------------------------------------------------------------------------
 using System;

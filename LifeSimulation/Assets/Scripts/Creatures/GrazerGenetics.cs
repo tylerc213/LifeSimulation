@@ -18,6 +18,7 @@ public class GrazerGenetics : MonoBehaviour
     public bool HasSpiky { get; private set; } = false;
     public bool HasHerdMentality { get; private set; }
     public bool HasHerdLeader { get; private set; }
+    public bool IsReptile { get; private set; } = false;
 
     public const float CamouflageChance = 0.75f;
     public const float SpikyReflect = 0.50f;
@@ -56,6 +57,13 @@ public class GrazerGenetics : MonoBehaviour
         HasSpiky = Genome.IsExpressed(TraitType.Spiky) && exprRare > 0f;
         HasHerdMentality = Genome.IsExpressed(TraitType.HerdMentality) && exprPack > 0f;
         HasHerdLeader = Genome.IsExpressed(TraitType.HerdLeader) && exprPack > 0f;
+
+        IsReptile = Genome.IsExpressed(TraitType.Reptile);
+        // Visual feedback: Give reptiles a scaly yellow/brown tint
+        if (IsReptile && _sr != null)
+        {
+            _sr.color = Color.Lerp(_sr.color, new Color(0.6f, 0.6f, 0.2f), 0.5f);
+        }
 
         EntityBase entity = GetComponent<EntityBase>();
         if (entity != null)

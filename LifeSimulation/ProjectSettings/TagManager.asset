@@ -42,8 +42,14 @@ TagManager:
   - 
   - 
   m_SortingLayers:
+  - name: Background
+    uniqueID: 1239699623
+    locked: 0
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: Simulation
+    uniqueID: 3177707055
     locked: 0
   m_RenderingLayers:
   - Default

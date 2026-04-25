@@ -80,7 +80,7 @@ public class TraitIconDisplay : MonoBehaviour
 
             SpriteRenderer sr = icon.AddComponent<SpriteRenderer>();
             sr.sprite = sprites[i];
-            sr.sortingLayerName = "Default";
+            sr.sortingLayerName = "Simulation";
             sr.sortingOrder = sortingOrder;
 
             _icons.Add(icon);

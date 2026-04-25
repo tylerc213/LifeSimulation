@@ -52,7 +52,7 @@ public class VisionCone : MonoBehaviour
         _targetColor = wanderColor;
         _mat.color = wanderColor;
         _meshRenderer.material = _mat;
-        _meshRenderer.sortingLayerName = "Default";
+        _meshRenderer.sortingLayerName = "Simulation";
         _meshRenderer.sortingOrder = 1;
 
         _mesh = new Mesh { name = "VisionConeMesh" };
