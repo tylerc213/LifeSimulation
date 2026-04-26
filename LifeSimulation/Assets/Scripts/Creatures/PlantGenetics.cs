@@ -4,11 +4,13 @@
 // Requirement: Lifeform Simulation
 // Author:      Luke Kivett
 // Date:        04/06/2026
-// Version:     0.0.0
+// Version:     0.0.1
 //
 // Description:
 //    Reads a plant Genome and applies trait effects to nutrition, color,
-//    scale, and eat-attractiveness. Attach alongside the Plant script.
+//    and eat-attractiveness. Attach alongside the Plant script.
+//    Scale is now controlled entirely by Plant.Grow() using GetLeafSizeScaleMultiplier()
+//    so that plants grow to their genetically correct size over time.
 // -----------------------------------------------------------------------------
 using UnityEngine;
 
@@ -16,6 +18,8 @@ using UnityEngine;
 /// <remarks>
 /// Call Init with a genome immediately after instantiation to override the
 /// random genome assigned in Awake. EcosystemManager handles this for offspring.
+/// Scale is intentionally not set here — Plant.Grow() reads the LeafSize gene
+/// directly and lerps toward the correct max scale each frame.
 /// </remarks>
 [RequireComponent(typeof(Plant))]
 public class PlantGenetics : MonoBehaviour
@@ -33,10 +37,10 @@ public class PlantGenetics : MonoBehaviour
     public float PoisonDamagePerSec { get; private set; } = 3f;
 
     /// <summary>Multiplier increasing grazer willingness to eat; driven by Tasty gene.</summary>
-    public float TastyMultiplier { get; private set; } = 1f;  
+    public float TastyMultiplier { get; private set; } = 1f;
 
     /// <summary>Multiplier decreasing grazer willingness to eat; driven by Bitter/Poisonous genes.</summary>
-    public float BitterMultiplier { get; private set; } = 1f; 
+    public float BitterMultiplier { get; private set; } = 1f;
 
     /// <summary>True when the Resilient gene is expressed.</summary>
     public bool IsResilient { get; private set; } = false;
@@ -60,23 +64,26 @@ public class PlantGenetics : MonoBehaviour
     {
         Genome = genome;
         ApplyTraits();
+        // Notify Plant to recalculate its effective max scale with the new genome
+        GetComponent<Plant>()?.RecalculateMaxScale();
     }
 
-    /// <summary>Reads each gene and applies its effect to stats, scale, and color.</summary>
+    /// <summary>Reads each gene and applies its effect to stats and color.</summary>
+    /// <remarks>Scale is NOT set here — Plant.Grow() controls scale via GetLeafSizeScaleMultiplier().</remarks>
     private void ApplyTraits()
     {
         float exprPrimary = ExpressionStrengthRuntime.NormalizedStrength(ExpressionStrengthRuntime.PlantPrimary);
         float exprSecondary = ExpressionStrengthRuntime.NormalizedStrength(ExpressionStrengthRuntime.PlantSecondary);
         float exprDefense = ExpressionStrengthRuntime.NormalizedStrength(ExpressionStrengthRuntime.PlantDefense);
 
-        // Leaf size encoded as allele count: AA=large, Aa=medium, aa=small
+        // Leaf size: nutrition multiplier and color only — scale is handled by Plant.Grow()
         Gene leafGene = Genome.Get(TraitType.LeafSize);
         if (leafGene != null)
         {
-            int leafLevel = (leafGene.AlleleA ? 1 : 0) + (leafGene.AlleleB ? 1 : 0); // 0,1,2
-            float baseNut = 0.7f + leafLevel * 0.3f;   // small=0.7, med=1.0, large=1.3
+            int leafLevel = (leafGene.AlleleA ? 1 : 0) + (leafGene.AlleleB ? 1 : 0);
+            float baseNut = 0.7f + leafLevel * 0.3f;
+            // Scale the nutrition effect by expression strength
             NutritionMultiplier = 1f + (baseNut - 1f) * exprPrimary;
-            transform.localScale *= 1f + leafLevel * 0.15f * exprPrimary;
 
             // Tint: small=yellow, medium=green, large=dark green
             if (_sr != null)
@@ -106,6 +113,7 @@ public class PlantGenetics : MonoBehaviour
             if (_sr != null) _sr.color = new Color(0.5f, 0.1f, 0.5f);
         }
 
+        // Resilient requires expression to be active
         IsResilient = Genome.IsExpressed(TraitType.Resilient) && exprDefense > 0f;
     }
 
