@@ -35,6 +35,10 @@ public enum TraitType
     Ambusher,       // recessive
     HerdHunter,     // recessive – requires 2+ predators in pack
     ApexPredator,   // recessive – one per simulation
+    NightVision,    // recessive
+
+    // ── Additional trait for predators and grazers ───────────────────────────────────────────────────────────
+    Reptile         // dominant
 }
 
 /// <summary>
@@ -123,6 +127,7 @@ public class Genome
         g.Genes.Add(Gene.Random(TraitType.Spiky, false, RecFreq));
         g.Genes.Add(Gene.Random(TraitType.HerdMentality, false, RecFreq));
         g.Genes.Add(Gene.Random(TraitType.HerdLeader, false, RecFreq * 0.3f));
+        g.Genes.Add(Gene.Random(TraitType.Reptile, true, DomFreq));
         return g;
     }
 
@@ -136,6 +141,8 @@ public class Genome
         g.Genes.Add(Gene.Random(TraitType.Ambusher, false, RecFreq));
         g.Genes.Add(Gene.Random(TraitType.HerdHunter, false, RecFreq));
         g.Genes.Add(Gene.Random(TraitType.ApexPredator, false, RecFreq * 0.2f));
+        g.Genes.Add(Gene.Random(TraitType.NightVision, false, RecFreq));
+        g.Genes.Add(Gene.Random(TraitType.Reptile, true, DomFreq));
         return g;
     }
 

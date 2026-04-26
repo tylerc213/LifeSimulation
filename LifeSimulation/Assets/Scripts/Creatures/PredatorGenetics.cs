@@ -21,6 +21,8 @@ public class PredatorGenetics : MonoBehaviour
     public bool IsAmbusher { get; private set; } = false;
     public bool IsHerdHunter { get; private set; }
     public bool IsApexPredator { get; private set; } = false;
+    public bool HasNightVision { get; private set; } = false;
+    public bool IsReptile { get; private set; } = false;
 
     public const float VenomDamagePerSec = 5f;
     public const float AmbushDamageBonus = 1.5f;
@@ -79,6 +81,21 @@ public class PredatorGenetics : MonoBehaviour
             HealthMultiplier *= apexFactor;
             DamageMultiplier *= apexFactor;
             if (_sr != null) _sr.color = new Color(0.9f, 0.1f, 0.1f);
+        }
+
+        // ── Night Vision (recessive) ──────────────────────────────────────
+        HasNightVision = Genome.IsExpressed(TraitType.NightVision) && exprRare > 0f;
+        // Visual feedback: Give them glowing yellow eyes or a purple tint if they have Night Vision
+        if (HasNightVision && _sr != null)
+        {
+            if (!IsVenomous) _sr.color = new Color(0.6f, 0.4f, 0.9f);
+        }
+
+        IsReptile = Genome.IsExpressed(TraitType.Reptile);
+        // Visual feedback: Give reptiles a scaly yellow/brown tint
+        if (IsReptile && _sr != null)
+        {
+            _sr.color = Color.Lerp(_sr.color, new Color(0.7f, 0.7f, 0.2f), 0.5f);
         }
 
         // Apply health multiplier to EntityBase

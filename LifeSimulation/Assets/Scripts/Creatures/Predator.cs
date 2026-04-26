@@ -174,6 +174,10 @@ public class Predator : EntityBase
         Vector2 dir = ((Vector2)_prey.position - (Vector2)transform.position).normalized;
         Vector2 vel = dir * huntSpeed;
         if (_genetics != null) vel *= _genetics.SpeedMultiplier;
+        if (_genetics != null && _genetics.IsReptile && EnvironmentHandler.Instance != null)
+        {
+            vel *= EnvironmentHandler.Instance.GetReptileSpeedMultiplier();
+        }
         if (_avoidance != null)
         {
             vel = _avoidance.GetAvoidanceVelocity(vel);
@@ -190,6 +194,10 @@ public class Predator : EntityBase
 
         Vector2 vel = toTarget.normalized * patrolSpeed;
         if (_genetics != null) vel *= _genetics.SpeedMultiplier;
+        if (_genetics != null && _genetics.IsReptile && EnvironmentHandler.Instance != null)
+        {
+            vel *= EnvironmentHandler.Instance.GetReptileSpeedMultiplier();
+        }
         if (_avoidance != null)
         {
             vel = _avoidance.GetAvoidanceVelocity(vel);
@@ -278,7 +286,8 @@ public class Predator : EntityBase
     // ── Helpers ───────────────────────────────────────────────────────────────
     private Transform FindNearestGrazer()
     {
-        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, detectRadius);
+        float currentRadius = GetCurrentDetectRadius();
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, currentRadius);
         Transform nearest = null;
         float minDist = float.MaxValue;
         foreach (var h in hits)
@@ -294,7 +303,8 @@ public class Predator : EntityBase
 
     private Transform FindNearestPrey()
     {
-        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, detectRadius);
+        float currentRadius = GetCurrentDetectRadius();
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, currentRadius);
         Transform nearest = null;
         float minDist = float.MaxValue;
         foreach (var h in hits)
@@ -399,5 +409,24 @@ public class Predator : EntityBase
             _rb.linearVelocity = Vector2.zero;
             PickNewPatrolTarget();
         }
+    }
+
+    private float GetCurrentDetectRadius()
+    {
+        float visionMult = 1.0f;
+
+        if (EnvironmentHandler.Instance != null)
+        {
+            float intensity = EnvironmentHandler.Instance.SunlightIntensity;
+
+            // If they have the trait, their vision floor is 0.8 (Night Hunter)
+            // If they don't, they are blind like everyone else (0.2 floor)
+            bool hasNightVision = _genetics != null && _genetics.HasNightVision;
+            float floor = hasNightVision ? 0.8f : 0.2f;
+
+            visionMult = Mathf.Lerp(floor, 1.0f, intensity);
+        }
+
+        return detectRadius * visionMult;
     }
 }

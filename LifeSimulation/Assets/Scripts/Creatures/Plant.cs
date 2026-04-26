@@ -62,11 +62,27 @@ public class Plant : MonoBehaviour
     {
         Grow();
         TrySpread();
+        CheckWinterSurvival();
     }
 
     private void Grow()
     {
-        _age = Mathf.Min(_age + Time.deltaTime, growthDuration);
+        if (EnvironmentHandler.Instance == null) return;
+
+        // 1. Get Environmental data
+        float sunPower = EnvironmentHandler.Instance.SunlightIntensity;
+        float seasonalGrowth = EnvironmentHandler.Instance.GetSeasonalGrowthMultiplier();
+
+        // 2. The "Buffer": Even in pitch black or winter, give a tiny baseline growth 
+        // so plants don't completely stall for 12 hours.
+        float baselineGrowth = 0.1f;
+
+        // 3. Boosted Photosynthesis
+        // We multiply by 2.0f (or higher) to ensure that during the 50% of the day 
+        // when the sun is up, they grow fast enough to finish.
+        float growthStep = (sunPower + baselineGrowth) * seasonalGrowth * 2.0f;
+
+        _age = Mathf.Min(_age + (Time.deltaTime * growthStep), growthDuration);
         float t = _age / growthDuration;
         float s = Mathf.Lerp(minScale, maxScale, t);
 
@@ -75,6 +91,28 @@ public class Plant : MonoBehaviour
         transform.localScale = Vector3.one * s * eatFraction;
 
         if (IsFullyGrown) _fullScale = maxScale;
+    }
+
+    private void CheckWinterSurvival()
+    {
+        if (EnvironmentHandler.Instance == null) return;
+
+        // Only check at the start of the day in Winter
+        if (EnvironmentHandler.Instance.currentSeason == EnvironmentHandler.Season.Winter)
+        {
+            // If the plant is NOT resilient, it has a chance to wither away
+            bool resilient = _genetics != null && _genetics.IsResilient;
+
+            if (!resilient)
+            {
+                // We use a small random chance per frame or a timer so they don't 
+                // all vanish at the exact same millisecond.
+                if (UnityEngine.Random.value < 0.001f)
+                {
+                    Consume(); // Instant removal
+                }
+            }
+        }
     }
 
     private void TrySpread()

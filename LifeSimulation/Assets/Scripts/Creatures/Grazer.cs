@@ -209,6 +209,10 @@ public class Grazer : EntityBase
         Vector2 awayDir = ((Vector2)transform.position - from).normalized;
         Vector2 vel = awayDir * fleeSpeed;
         if (_genetics != null) vel *= _genetics.SpeedMultiplier;
+        if (_genetics != null && _genetics.IsReptile && EnvironmentHandler.Instance != null)
+        {
+            vel *= EnvironmentHandler.Instance.GetReptileSpeedMultiplier();
+        }
         if (_avoidance != null)
         {
             vel = _avoidance.GetAvoidanceVelocity(vel);
@@ -235,6 +239,10 @@ public class Grazer : EntityBase
         {
             Vector2 vel = dir.normalized * moveSpeed;
             if (_genetics != null) vel *= _genetics.SpeedMultiplier;
+            if (_genetics != null && _genetics.IsReptile && EnvironmentHandler.Instance != null)
+            {
+                vel *= EnvironmentHandler.Instance.GetReptileSpeedMultiplier();
+            }
             if (_avoidance != null)
             {
                 vel = _avoidance.GetAvoidanceVelocity(vel);
@@ -253,7 +261,10 @@ public class Grazer : EntityBase
         Vector2 vel = toTarget.normalized * (moveSpeed * 0.6f);
 
         if (_genetics != null) vel *= _genetics.SpeedMultiplier;
-
+        if (_genetics != null && _genetics.IsReptile && EnvironmentHandler.Instance != null)
+        {
+            vel *= EnvironmentHandler.Instance.GetReptileSpeedMultiplier();
+        }
         if (_avoidance != null)
         {
             vel = _avoidance.GetAvoidanceVelocity(vel);
@@ -481,7 +492,14 @@ public class Grazer : EntityBase
     
     private Transform FindNearest(string tag, float radius)
     {
-        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, radius);
+        // Apply visibility penalty to the search radius
+        float currentVisionRadius = radius;
+        if (EnvironmentHandler.Instance != null)
+        {
+            currentVisionRadius *= EnvironmentHandler.Instance.VisibilityMultiplier;
+        }
+
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, currentVisionRadius);
         Transform nearest = null;
         float minDist = float.MaxValue;
         foreach (var h in hits)

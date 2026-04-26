@@ -7,7 +7,7 @@
 // Version:     0.0.1
 //
 // Description:
-//    Generates a square tilemap using a provided seed and specified X/Y dimensions.
+//    Generates a square tilemap using preset map sizes, perlin noice for detail, and randomly placed obstacles.
 //    After map generation, spawns initial obstacles, plants, grazers, and predators.
 // -----------------------------------------------------------------------------
 using System;
@@ -44,7 +44,7 @@ public class MapGenerator2D : MonoBehaviour
     public float perlinScale = 0.1f;
     [Tooltip("0 = least water, 1 = most water (blue tiles).")]
     [Range(0f, 1f)]
-    public float waterSpawnRate = 0.5f;
+    public float waterSpawnRate = 0.35f;
 
     [Header("Initial Population")]
     public int startPlants = 15;
@@ -149,7 +149,7 @@ public class MapGenerator2D : MonoBehaviour
                 float perlin = Mathf.PerlinNoise((x + halfDim) * perlinScale + _currentOffsetX, (y + halfDim) * perlinScale + _currentOffsetY);
 
                 // Use the Palette colors based on perlin noise (water vs land)
-                Color tileColor = (perlin > 0.65f) ? palette.waterColor : palette.landColor;
+                Color tileColor = (perlin > waterSpawnRate) ? palette.waterColor : palette.landColor;
 
                 squareTilemap.SetTileFlags(tilePos, TileFlags.None);
                 squareTilemap.SetColor(tilePos, tileColor);
