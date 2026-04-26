@@ -1,7 +1,15 @@
 ﻿﻿// -----------------------------------------------------------------------------
-// Genetics.cs
-// Core data structures for the trait/gene system.
-// No MonoBehaviour — pure data, used by Genome.cs and all entity scripts.
+// Project:     EXTENDED LIFE SIMULATION CAPSTONE ASSIGNMENT
+// Item:        Lifeforms
+// Requirement: Lifeform Simulation
+// Author:      Luke Kivett
+// Date:        4/6/2026
+// Version:     0.0.0
+//
+// Description:
+//    Core data structures for the heritable trait system. Defines TraitType,
+//    Gene (allele pair + dominance), and Genome (full trait collection with
+//    Mendelian inheritance and random initialisation factory methods).
 // -----------------------------------------------------------------------------
 using System.Collections.Generic;
 using UnityEngine;
@@ -41,13 +49,11 @@ public enum TraitType
     Reptile         // dominant
 }
 
-/// <summary>
-/// A single gene: two alleles (true = trait allele, false = wild-type allele)
-/// and whether the trait is dominant or recessive.
-/// Trait is expressed when:
-///   Dominant  → at least one allele is true  (Aa or AA)
-///   Recessive → both alleles are true         (aa only)
-/// </summary>
+/// <summary>A single heritable gene consisting of two alleles and a dominance flag.</summary>
+/// <remarks>
+/// Dominant genes express when at least one allele is true (Aa or AA).
+/// Recessive genes express only when both alleles are true (aa).
+/// </remarks>
 [System.Serializable]
 public class Gene
 {
@@ -56,6 +62,11 @@ public class Gene
     public bool AlleleB;
     public bool IsDominant;
 
+    /// <summary>Constructs a gene with explicit allele values.</summary>
+    /// <param name="trait">Trait this gene controls.</param>
+    /// <param name="alleleA">First allele value.</param>
+    /// <param name="alleleB">Second allele value.</param>
+    /// <param name="isDominant">Whether the trait is dominant or recessive.</param>
     public Gene(TraitType trait, bool alleleA, bool alleleB, bool isDominant)
     {
         Trait = trait;
@@ -69,9 +80,9 @@ public class Gene
         IsDominant ? (AlleleA || AlleleB)   // dominant: Aa or AA
                    : (AlleleA && AlleleB);  // recessive: aa only
 
-    /// <summary>
-    /// Mendelian cross: takes one allele from this gene and one from the other parent.
-    /// </summary>
+    /// <summary>Produces an offspring gene via Mendelian inheritance from two parents.</summary>
+    /// <param name="otherParent">The other parent's copy of this gene.</param>
+    /// <returns>New gene with one allele from each parent.</returns>
     public Gene InheritWith(Gene otherParent)
     {
         bool childA = UnityEngine.Random.value < 0.5f ? AlleleA : AlleleB;
@@ -79,7 +90,11 @@ public class Gene
         return new Gene(Trait, childA, childB, IsDominant);
     }
 
-    /// <summary>Creates a gene with randomised alleles.</summary>
+    /// <summary>Creates a gene with randomly assigned alleles at a given frequency.</summary>
+    /// <param name="trait">Trait to assign.</param>
+    /// <param name="isDominant">Whether the trait is dominant.</param>
+    /// <param name="alleleFrequency">Probability each allele is the trait allele.</param>
+    /// <returns>New gene with randomised alleles.</returns>
     public static Gene Random(TraitType trait, bool isDominant, float alleleFrequency = 0.5f)
     {
         return new Gene(
@@ -90,10 +105,7 @@ public class Gene
     }
 }
 
-/// <summary>
-/// A full set of genes for one entity.
-/// Build via the static factory methods, then attach to an entity component.
-/// </summary>
+/// <summary>A complete set of genes for one entity with factory and inheritance methods.</summary>
 [System.Serializable]
 public class Genome
 {
@@ -104,8 +116,8 @@ public class Genome
     private const float DomFreq = 0.6f;
     private const float RecFreq = 0.25f;
 
-    // ── Factory methods ────────────────────────────────────────────────────
-
+    /// <summary>Creates a randomised plant genome.</summary>
+    /// <returns>New genome with all plant trait genes.</returns>
     public static Genome RandomPlant()
     {
         var g = new Genome();
@@ -117,6 +129,8 @@ public class Genome
         return g;
     }
 
+    /// <summary>Creates a randomised grazer genome.</summary>
+    /// <returns>New genome with all grazer trait genes.</returns>
     public static Genome RandomGrazer()
     {
         var g = new Genome();
@@ -131,6 +145,8 @@ public class Genome
         return g;
     }
 
+    /// <summary>Creates a randomised predator genome.</summary>
+    /// <returns>New genome with all predator trait genes.</returns>
     public static Genome RandomPredator()
     {
         var g = new Genome();
@@ -146,7 +162,10 @@ public class Genome
         return g;
     }
 
-    /// <summary>Mendelian inheritance from two parent genomes.</summary>
+    /// <summary>Produces an offspring genome via Mendelian inheritance from two parents.</summary>
+    /// <param name="parentA">First parent genome.</param>
+    /// <param name="parentB">Second parent genome.</param>
+    /// <returns>New genome with one allele per gene from each parent.</returns>
     public static Genome Inherit(Genome parentA, Genome parentB)
     {
         var child = new Genome();
@@ -155,8 +174,9 @@ public class Genome
         return child;
     }
 
-    // ── Lookup helpers ─────────────────────────────────────────────────────
-
+    /// <summary>Retrieves a gene by trait type.</summary>
+    /// <param name="trait">Trait to look up.</param>
+    /// <returns>Matching gene, or null if not found.</returns>
     public Gene Get(TraitType trait)
     {
         foreach (var g in Genes)
@@ -164,6 +184,9 @@ public class Genome
         return null;
     }
 
+    /// <summary>Returns true if the specified trait is phenotypically expressed.</summary>
+    /// <param name="trait">Trait to evaluate.</param>
+    /// <returns>True if the gene exists and its expression condition is met.</returns>
     public bool IsExpressed(TraitType trait)
     {
         var g = Get(trait);
