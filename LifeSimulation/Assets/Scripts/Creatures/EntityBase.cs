@@ -92,7 +92,11 @@ public class EntityBase : MonoBehaviour
         if (IsDead) return;
         Health = Mathf.Max(0f, Health - amount);
         FlashHit();
-        if (Health <= 0f) Die();
+        if (Health <= 0f) {
+            SimulationLogger.Instance.LogInteraction("Predation", "Predator", "Grazer");
+            Die();
+        }
+       
     }
  
     /// <summary>Applies damage without any visual feedback; used for continuous effects.</summary>

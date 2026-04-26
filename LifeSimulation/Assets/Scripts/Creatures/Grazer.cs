@@ -143,6 +143,7 @@ public class Grazer : EntityBase
                 _lastKnownPredatorPos = _nearestPredator.position;
                 _fleeTimer = MinFleeDuration;
                 _state = State.Flee;
+
                 return;
             }
         }
@@ -316,6 +317,7 @@ public class Grazer : EntityBase
         // Plant destroys itself on the last bite; null check clears our reference
         if (plant == null || !plant.gameObject.activeInHierarchy)
             _targetPlant = null;
+     
     }
 
     /// <summary>Reflects a portion of incoming damage back to the attacker if Spiky is expressed.</summary>

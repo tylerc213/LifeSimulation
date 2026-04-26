@@ -4,7 +4,7 @@
 // Requirement:	Event Log
 // Author:		Caden Nieves
 // Date:		03/26/2026
-// Version:		0.1.0
+// Version:		1.1.0
 //
 // Description:
 //    Represents a data structure containing a snapshot of Interaction events
