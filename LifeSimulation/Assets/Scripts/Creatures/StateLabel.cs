@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------------
 // Project:     EXTENDED LIFE SIMULATION CAPSTONE ASSIGNMENT
-// Item:        Lifeform Visuals
-// Requirement: Lifeform Simulation
-// Author:      Luke Kivet
-// Date:        04/06/2026
-// Version:     0.0.0
+// Item:        [FROM GITHUB KANBAN BOARD]
+// Requirement: [FROM GITHUB KANBAN BOARD]
+// Author:      [Name]
+// Date:        [MM/DD/YYYY]
+// Version:     [#.#.#]
 //
 // Description:
 //    Displays a world-space text label above a creature showing its current AI
@@ -29,6 +29,8 @@ public class StateLabel : MonoBehaviour
     public const string Seek   = "Seek Plant";
     public const string Eat    = "Eating";
     public const string Hunt   = "Hunt";
+    public const string Stalk  = "Stalking";
+    public const string Dash   = "Dash!";
     public const string Patrol = "Patrol";
     public const string Dead   = "Dead";
 
@@ -73,6 +75,8 @@ public class StateLabel : MonoBehaviour
             Seek   => new Color(0.4f, 0.7f, 1f),
             Eat    => new Color(0.2f, 1f,   0.4f),
             Hunt   => new Color(1f,   0.55f, 0.1f),
+            Stalk  => new Color(0.5f, 0.2f, 0.7f),
+            Dash   => new Color(1f,   0f,   0.5f),
             Patrol => new Color(1f,   0.9f,  0.3f),
             Dead   => new Color(0.5f, 0.5f,  0.5f),
             _      => Color.white,
