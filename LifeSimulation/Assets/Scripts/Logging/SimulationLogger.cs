@@ -23,6 +23,16 @@ public class SimulationLogger : MonoBehaviour
 {
     public string filepath;
 
+    public LogManager logManager;
+
+    public static SimulationLogger Instance;
+
+    /// <summary>
+    /// Allows instances of SimulationLogger to be created and accessed across scripts.
+    /// </summary>
+    void Awake( ) { Instance = this; }
+
+
     void OnEnable()
     {
         MapGenerator2D.OnMapGenerated += BeginLoggingSession;
@@ -89,10 +99,12 @@ public class SimulationLogger : MonoBehaviour
     /// <param name="source">lifeform that initiated interaction</param>
     /// <param name="target">bystander of interaction</param>
     /// <param name="tick">current tick/frame when interaction triggered</param>
-    public void LogInteraction(string interactionType, string source, string target, int tick)
+    public void LogInteraction(string interactionType, string source, string target)
     {
         if (string.IsNullOrEmpty(filepath))
             return;
+
+        int tick = logManager.currentTick;
 
         InteractionData interactionData = new InteractionData(interactionType, source, target);
 

@@ -3449,6 +3449,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SimulationLogger
   filepath: 
+  logManager: {fileID: 1503027208}
 --- !u!114 &1503027208
 MonoBehaviour:
   m_ObjectHideFlags: 0

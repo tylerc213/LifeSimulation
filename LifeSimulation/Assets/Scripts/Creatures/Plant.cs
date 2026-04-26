@@ -190,6 +190,7 @@ public class Plant : MonoBehaviour
         // Last bite — destroy
         if (_bitesRemaining <= 0)
         {
+            SimulationLogger.Instance.LogInteraction("Predation", "Grazer", "Plant");
             StartCoroutine(DestroyAfterFrame());
         }
 
