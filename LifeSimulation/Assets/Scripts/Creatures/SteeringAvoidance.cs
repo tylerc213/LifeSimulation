@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------------
 // Project:     EXTENDED LIFE SIMULATION CAPSTONE ASSIGNMENT
-// Item:        [FROM GITHUB KANBAN BOARD]
-// Requirement: [FROM GITHUB KANBAN BOARD]
-// Author:      [Name]
-// Date:        [MM/DD/YYYY]
-// Version:     [#.#.#]
+// Item:        Interactions
+// Requirement: Lifeform Simulation
+// Author:      Luke Kivett
+// Date:        04/06/2026
+// Version:     0.0.0
 //
 // Description:
 //    Raycasting-based obstacle avoidance for 2D agents. Uses BoxCast fan rays
