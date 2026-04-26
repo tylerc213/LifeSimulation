@@ -4,11 +4,12 @@
 // Requirement: Lifeform Simulation
 // Author:      Luke Kivett
 // Date:        4/6/2026
-// Version:     0.0.0
+// Version:     0.0.1
 //
 // Description:
 //    Static organism that grows over time, spreads seeds when mature, and is
 //    consumed bite-by-bite by grazers with shrink and shake visual feedback.
+//    Max scale is determined by the LeafSize genetic trait at spawn time.
 // -----------------------------------------------------------------------------
 using System;
 using System.Collections;
@@ -18,6 +19,7 @@ using UnityEngine;
 /// <remarks>
 /// Tag this GameObject "Plant". PlantGenetics is optional; without it the plant
 /// uses base nutrition values and default attractiveness.
+/// Max scale is overridden by the LeafSize gene: small = 0.7x, medium = 1.0x, large = 1.4x.
 /// </remarks>
 public class Plant : MonoBehaviour
 {
@@ -36,12 +38,18 @@ public class Plant : MonoBehaviour
     [SerializeField] private float nutritionValue = 40f;
 
     [Header("Eat Effect")]
-    [SerializeField] private int biteCount = 4;      // how many bites to fully consume
-    [SerializeField] private float biteShakeMag = 0.06f;  // how far the plant jolts per bite
-    [SerializeField] private float biteShakeTime = 0.08f;  // seconds the jolt lasts
+    // Total bites before the plant is fully consumed
+    [SerializeField] private int biteCount = 4;
+    // Lateral jolt distance per bite in world units
+    [SerializeField] private float biteShakeMag = 0.06f;
+    // Duration of each bite jolt in seconds
+    [SerializeField] private float biteShakeTime = 0.08f;
 
     // Genetics component — optional, applied at spawn
     private PlantGenetics _genetics;
+
+    // Effective max scale after applying the LeafSize gene multiplier
+    private float _effectiveMaxScale;
 
     /// <summary>Nutrition per full consumption, scaled by leaf-size genetics.</summary>
     public float NutritionValue => nutritionValue * (_genetics != null ? _genetics.NutritionMultiplier : 1f);
@@ -51,10 +59,10 @@ public class Plant : MonoBehaviour
 
     /// <summary>True if this plant carries the Poisonous gene.</summary>
     public bool IsPoisonous => _genetics != null && _genetics.IsPoisonous;
-    
+
     /// <summary>Damage per second applied to a grazer that eats a poisonous plant.</summary>
     public float PoisonDamagePerSec => _genetics != null ? _genetics.PoisonDamagePerSec : 0f;
-    
+
     /// <summary>True once the plant has finished its growth animation.</summary>
     public bool IsFullyGrown => _age >= growthDuration;
 
@@ -64,10 +72,10 @@ public class Plant : MonoBehaviour
     private float _age = 0f;
     private float _spreadTimer = 0f;
     private int _bitesRemaining;
-    private float _fullScale;         
+    private float _fullScale;
     private SpriteRenderer _sr;
     private Color _baseColor;
-    private Vector3 _originPos;       
+    private Vector3 _originPos;
     private Coroutine _shakeCoroutine;
 
     /// <summary>Caches components and initialises bite count and origin position.</summary>
@@ -78,6 +86,22 @@ public class Plant : MonoBehaviour
         _baseColor = _sr != null ? _sr.color : Color.white;
         _bitesRemaining = biteCount;
         _originPos = transform.localPosition;
+
+        // Default to base max scale — will be corrected in Start once genetics have run
+        _effectiveMaxScale = maxScale;
+    }
+
+    /// <summary>Calculates effective max scale after PlantGenetics.Awake has set the genome.</summary>
+    private void Start()
+    {
+        // PlantGenetics.Awake is guaranteed to have run by now, so the genome is available
+        _effectiveMaxScale = maxScale * GetLeafSizeScaleMultiplier();
+    }
+
+    /// <summary>Recalculates effective max scale when a genome is applied after Start.</summary>
+    public void RecalculateMaxScale()
+    {
+        _effectiveMaxScale = maxScale * GetLeafSizeScaleMultiplier();
     }
 
     /// <summary>Advances growth and attempts seed spreading each frame.</summary>
@@ -88,54 +112,43 @@ public class Plant : MonoBehaviour
         CheckWinterSurvival();
     }
 
-    /// <summary>Scales the plant toward its full size, further reduced by eat progress.</summary>
+    /// <summary>Scales the plant toward its effective max size, reduced by eat progress.</summary>
     private void Grow()
     {
         if (EnvironmentHandler.Instance == null) return;
 
-        // 1. Get Environmental data
         float sunPower = EnvironmentHandler.Instance.SunlightIntensity;
         float seasonalGrowth = EnvironmentHandler.Instance.GetSeasonalGrowthMultiplier();
 
-        // 2. The "Buffer": Even in pitch black or winter, give a tiny baseline growth 
-        // so plants don't completely stall for 12 hours.
+        // Small baseline ensures plants don't stall completely during night or winter
         float baselineGrowth = 0.1f;
 
-        // 3. Boosted Photosynthesis
-        // We multiply by 2.0f (or higher) to ensure that during the 50% of the day 
-        // when the sun is up, they grow fast enough to finish.
+        // Multiply by 2 so plants finish growing during the daylight portion of the cycle
         float growthStep = (sunPower + baselineGrowth) * seasonalGrowth * 2.0f;
 
         _age = Mathf.Min(_age + (Time.deltaTime * growthStep), growthDuration);
         float t = _age / growthDuration;
-        float s = Mathf.Lerp(minScale, maxScale, t);
 
-        // Scale is further reduced by eat progress
+        // Use effective max scale (leaf-size adjusted) instead of raw maxScale
+        float s = Mathf.Lerp(minScale, _effectiveMaxScale, t);
+
+        // Further reduce scale as the plant is eaten bite-by-bite
         float eatFraction = (float)_bitesRemaining / biteCount;
         transform.localScale = Vector3.one * s * eatFraction;
 
-        if (IsFullyGrown) _fullScale = maxScale;
+        if (IsFullyGrown) _fullScale = _effectiveMaxScale;
     }
 
+    /// <summary>Non-resilient plants have a small per-frame chance to die in winter.</summary>
     private void CheckWinterSurvival()
     {
         if (EnvironmentHandler.Instance == null) return;
 
-        // Only check at the start of the day in Winter
         if (EnvironmentHandler.Instance.currentSeason == EnvironmentHandler.Season.Winter)
         {
-            // If the plant is NOT resilient, it has a chance to wither away
             bool resilient = _genetics != null && _genetics.IsResilient;
-
-            if (!resilient)
-            {
-                // We use a small random chance per frame or a timer so they don't 
-                // all vanish at the exact same millisecond.
-                if (UnityEngine.Random.value < 0.001f)
-                {
-                    Consume(); // Instant removal
-                }
-            }
+            if (!resilient && UnityEngine.Random.value < 0.001f)
+                Consume();
         }
     }
 
@@ -148,6 +161,7 @@ public class Plant : MonoBehaviour
         if (_spreadTimer < spreadInterval) return;
         _spreadTimer = 0f;
 
+        // Count nearby plants to suppress spreading in dense areas
         Collider2D[] nearby = Physics2D.OverlapCircleAll(
             transform.position, crowdCheckRadius,
             LayerMask.GetMask("Default"));
@@ -167,7 +181,7 @@ public class Plant : MonoBehaviour
         EcosystemManager.Instance?.SpawnPlant(seedPos);
     }
 
-     /// <summary>Processes one bite, updates visuals, and destroys the plant on the final bite.</summary>
+    /// <summary>Processes one bite, updates visuals, and destroys the plant on the final bite.</summary>
     /// <returns>Nutrition value for this single bite.</returns>
     public float BeingEaten()
     {
@@ -175,19 +189,18 @@ public class Plant : MonoBehaviour
 
         _bitesRemaining--;
 
-        // Shift color toward brown/yellow as the plant is consumed
+        // Lerp sprite toward brown as more bites are taken
         float eatFraction = (float)_bitesRemaining / biteCount;
         if (_sr != null)
         {
-            Color eaten = new Color(0.55f, 0.35f, 0.1f);   // brown
+            Color eaten = new Color(0.55f, 0.35f, 0.1f);
             _sr.color = Color.Lerp(eaten, _baseColor, eatFraction);
         }
 
-        // Shake the plant to show it's being torn
+        // Trigger a shake jolt to show the plant being torn
         if (_shakeCoroutine != null) StopCoroutine(_shakeCoroutine);
         _shakeCoroutine = StartCoroutine(ShakeCoroutine());
 
-        // Last bite — destroy
         if (_bitesRemaining <= 0)
         {
             SimulationLogger.Instance.LogInteraction("Predation", "Grazer", "Plant");
@@ -213,7 +226,32 @@ public class Plant : MonoBehaviour
     /// <summary>Waits one frame before destroying so the final bite's nutrition is returned first.</summary>
     private IEnumerator DestroyAfterFrame()
     {
-        yield return null; 
+        yield return null;
         Destroy(gameObject);
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns a scale multiplier based on the expressed LeafSize allele count.
+    /// aa (small) = 0.7, Aa (medium) = 1.0, AA (large) = 1.4.
+    /// Falls back to 1.0 if no genetics component is present.
+    /// </summary>
+    /// <returns>Scale multiplier for this plant's leaf size.</returns>
+    private float GetLeafSizeScaleMultiplier()
+    {
+        if (_genetics == null || _genetics.Genome == null) return 1f;
+
+        Gene leafGene = _genetics.Genome.Get(TraitType.LeafSize);
+        if (leafGene == null) return 1f;
+
+        int leafLevel = (leafGene.AlleleA ? 1 : 0) + (leafGene.AlleleB ? 1 : 0);
+        return leafLevel switch
+        {
+            0 => 0.7f,   // small — less visible, lower nutrition
+            1 => 1.0f,   // medium — baseline
+            2 => 1.4f,   // large — very visible, high nutrition
+            _ => 1.0f,
+        };
     }
 }
