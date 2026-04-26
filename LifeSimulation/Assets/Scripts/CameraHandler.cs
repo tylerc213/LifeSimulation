@@ -55,12 +55,7 @@ public class CameraHandler : MonoBehaviour
     /// </summary>
     void Start()
     {
-        // Cache required components for performance and reuse
-        _rb = GetComponent<Rigidbody2D>();
         _cam = GetComponentInChildren<Camera>();
-
-        // Prevent unwanted rotation from physics interactions
-        _rb.freezeRotation = true;
 
         // Initialize map boundaries based on selected size
         UpdateTiers();
@@ -88,20 +83,19 @@ public class CameraHandler : MonoBehaviour
     /// </summary>
     void Update()
     {
-        // Read raw input to avoid smoothing (gives responsive camera control)
+        // Read raw input for immediate camera responsiveness
         _input.x = Input.GetAxisRaw("Horizontal");
         _input.y = Input.GetAxisRaw("Vertical");
-        HandleZoom();
-    }
 
-    /// <summary>
-    /// Applies smooth physics-based movement and enforces boundaries.
-    /// </summary>
-    void FixedUpdate()
-    {
-        // Smoothly interpolate velocity toward target movement direction
-        Vector2 targetVelocity = _input.normalized * moveSpeed;
-        _rb.linearVelocity = Vector2.Lerp(_rb.linearVelocity, targetVelocity, acceleration * Time.fixedDeltaTime);
+        HandleZoom();
+
+        // Movement executed in Update to bypass Time.timeScale dependency
+        Vector2 direction = _input.normalized;
+
+        // Use unscaled delta time so movement works while paused and ignores simulation speed
+        Vector3 move = (Vector3)(direction * moveSpeed * Time.unscaledDeltaTime);
+
+        transform.position += move;
 
         ApplyBoundaries();
     }
