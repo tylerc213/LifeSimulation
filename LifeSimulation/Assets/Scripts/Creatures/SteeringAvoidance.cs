@@ -1,9 +1,9 @@
 // -----------------------------------------------------------------------------
 // Project:     EXTENDED LIFE SIMULATION CAPSTONE ASSIGNMENT
-// Item:        Interactions
-// Requirement: Lifeform Simulation
-// Author:      Luke Kivett
-// Date:        4/6/2026
+// Item:        [FROM GITHUB KANBAN BOARD]
+// Requirement: [FROM GITHUB KANBAN BOARD]
+// Author:      [Name]
+// Date:        [MM/DD/YYYY]
 // Version:     [#.#.#]
 //
 // Description:
@@ -11,8 +11,8 @@
 //    to detect tagged obstacles and steers agents around them. Supports
 //    configurable tag sets and dead-end detection with reversal.
 // -----------------------------------------------------------------------------
-
 using UnityEngine;
+using static System.Net.Mime.MediaTypeNames;
 
 /// <summary>Steers agents around tagged obstacles using a BoxCast fan.</summary>
 /// <remarks>
@@ -103,8 +103,11 @@ public class SteeringAvoidance : MonoBehaviour
         // Blend toward clearest ray proportional to obstacle proximity
         float t = 1f - (forwardClearance / lookAheadDistance);
         float blend = t * avoidanceStrength * Time.deltaTime * 10f;
-        Vector2 steered = Vector2.Lerp(forward, bestDirection, Mathf.Clamp01(blend)).normalized;
-        return steered * speed;
+        Vector2 steered = Vector2.Lerp(forward, bestDirection, Mathf.Clamp01(blend));
+
+        // Guard against degenerate normalisation producing NaN
+        if (steered.sqrMagnitude < 0.001f) return desiredVelocity;
+        return steered.normalized * speed;
     }
 
     /// <summary>Casts a box in a direction and returns the distance to the nearest avoided object.</summary>
@@ -159,7 +162,7 @@ public class SteeringAvoidance : MonoBehaviour
     /// <summary>Draws debug rays in the Scene view showing clearance per ray direction.</summary>
     private void OnDrawGizmosSelected()
     {
-        if (!Application.isPlaying) return;
+        if (!UnityEngine.Application.isPlaying) return;
         Rigidbody2D rb = GetComponent<Rigidbody2D>();
         if (rb == null || rb.linearVelocity.sqrMagnitude < 0.001f) return;
 
