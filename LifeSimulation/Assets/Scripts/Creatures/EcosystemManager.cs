@@ -1,15 +1,29 @@
+// -----------------------------------------------------------------------------
+// Project:     EXTENDED LIFE SIMULATION CAPSTONE ASSIGNMENT
+// Item:        Lifeforms
+// Requirement: Lifeform Simulation
+// Author:      Luke Kivett
+// Date:        4/6/2026
+// Version:     0.0.0
+//
+// Description:
+//    Central spawner and population controller for the simulation. Manages
+//    plant, grazer, and predator population caps, manual and reproductive
+//    spawning, and periodic plant replenishment.
+// -----------------------------------------------------------------------------
 using System;
 using UnityEngine;
 
-/// <summary>
-/// EcosystemManager — central spawner and population controller.
-/// Attach to a single "Managers" GameObject in the scene.
-///
-/// Drag your Plant, Grazer, and Predator prefabs into the Inspector.
-/// Make sure each prefab has the matching Tag set ("Plant", "Grazer", "Predator").
-/// </summary>
+/// <summary>Controls all entity spawning and enforces population caps.</summary>
+/// <remarks>
+/// Attach to a single Managers GameObject. Assign Plant, Grazer, and Predator
+/// prefabs in the Inspector. Each prefab must have its matching tag set.
+/// Live integer counters are used instead of FindGameObjectsWithTag to avoid
+/// the one-frame registration lag that caused cascade spawning.
+/// </remarks>
 public class EcosystemManager : MonoBehaviour
 {
+    /// <summary>Singleton instance.</summary>
     public static EcosystemManager Instance { get; private set; }
 
     [Header("Prefabs")]
@@ -58,7 +72,7 @@ public class EcosystemManager : MonoBehaviour
     private float _grazerReplenishTimer;
     private float _predatorReplenishTimer;
 
-    // ── Unity ─────────────────────────────────────────────────────────────────
+    /// <summary>Initialises singleton reference.</summary>
     private void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
@@ -81,7 +95,8 @@ public class EcosystemManager : MonoBehaviour
         _grazerReplenishTimer = 0f;
         _predatorReplenishTimer = 0f;
     }
-
+    
+    /// <summary>Periodically replenishes plants up to the population cap.</summary>
     private void Update()
     {
         // Auto-replenish must not run before Generate Map — otherwise plants spawn in empty space.
@@ -143,53 +158,64 @@ public class EcosystemManager : MonoBehaviour
         predatorReplenishAmount = predator.replenishAmount;
     }
 
-    // ── Public Spawn Methods ──────────────────────────────────────────────────
-
-    /// <summary>
-    /// Called by reproduction logic (birth). Respects population caps.
-    /// </summary>
+    /// <summary>Spawns a plant at a position, respecting the population cap.</summary>
+    /// <param name="position">World-space spawn position.</param>
     public void SpawnPlant(Vector2 position)
     {
         if (_plantCount >= maxPlants) return;
         DoSpawnPlant(position);
     }
 
+    /// <summary>Spawns a grazer at a position, respecting the population cap.</summary>
+    /// <param name="position">World-space spawn position.</param>
     public void SpawnGrazer(Vector2 position)
     {
         if (_grazerCount >= maxGrazers) return;
         DoSpawnGrazer(Offset(position), null);
     }
 
+    /// <summary>Spawns a predator at a position, respecting the population cap.</summary>
+    /// <param name="position">World-space spawn position.</param>
     public void SpawnPredator(Vector2 position)
     {
         if (_predatorCount >= maxPredators) return;
         DoSpawnPredator(Offset(position), null);
     }
 
-    /// <summary>
-    /// Called by click-spawner. Spawns exactly ONE entity, ignoring caps,
-    /// so the player's intent is always respected.
-    /// </summary>
+    /// <summary>Spawns exactly one entity ignoring caps; honours player intent from click spawner.</summary>
+    /// <param name="position">World-space spawn position.</param>
     public void ManualSpawnPlant(Vector2 position) => DoSpawnPlant(position);
+
+    /// <summary>Spawns exactly one grazer ignoring caps; honours player intent from click spawner.</summary>
+    /// <param name="position">World-space spawn position.</param>
     public void ManualSpawnGrazer(Vector2 position) => DoSpawnGrazer(position, null);
+    
+    /// <summary>Spawns exactly one predator ignoring caps; honours player intent from click spawner.</summary>
+    /// <param name="position">World-space spawn position.</param>
     public void ManualSpawnPredator(Vector2 position) => DoSpawnPredator(position, null);
 
-    /// <summary>Called by Grazer.TryReproduce — passes parent genomes for Mendelian inheritance.</summary>
+    /// <summary>Spawns a grazer offspring with an inherited genome from two parents.</summary>
+    /// <param name="position">World-space spawn position.</param>
+    /// <param name="parentA">First parent genome.</param>
+    /// <param name="parentB">Second parent genome.</param>
     public void SpawnGrazerOffspring(Vector2 position, Genome parentA, Genome parentB)
     {
         if (_grazerCount >= maxGrazers) return;
         DoSpawnGrazer(Offset(position), Genome.Inherit(parentA, parentB));
     }
 
-    /// <summary>Called by Predator.TryReproduce — passes parent genomes for Mendelian inheritance.</summary>
+    /// <summary>Spawns a predator offspring with an inherited genome from two parents.</summary>
+    /// <param name="position">World-space spawn position.</param>
+    /// <param name="parentA">First parent genome.</param>
+    /// <param name="parentB">Second parent genome.</param>
     public void SpawnPredatorOffspring(Vector2 position, Genome parentA, Genome parentB)
     {
         if (_predatorCount >= maxPredators) return;
         DoSpawnPredator(Offset(position), Genome.Inherit(parentA, parentB));
     }
 
-    // ── Internal Spawn Helpers (each spawns exactly ONE) ─────────────────────
-
+    /// <summary>Instantiates a plant, registers its death callback, and triggers icon refresh.</summary>
+    /// <param name="position">World-space spawn position.</param>
     private void DoSpawnPlant(Vector2 position)
     {
         if (plantPrefab == null) return;
@@ -206,6 +232,9 @@ public class EcosystemManager : MonoBehaviour
         go.GetComponent<TraitIconDisplay>()?.Refresh();
     }
 
+    /// <summary>Instantiates a grazer, registers its death callback, and optionally applies a genome.</summary>
+    /// <param name="spawnPos">World-space spawn position.</param>
+    /// <param name="genome">Inherited genome, or null for a random one.</param>
     private void DoSpawnGrazer(Vector2 spawnPos, Genome genome)
     {
         if (grazerprefab == null) return;
@@ -226,6 +255,9 @@ public class EcosystemManager : MonoBehaviour
         }
     }
 
+    /// <summary>Instantiates a predator, registers its death callback, and optionally applies a genome.</summary>
+    /// <param name="spawnPos">World-space spawn position.</param>
+    /// <param name="genome">Inherited genome, or null for a random one.</param>
     private void DoSpawnPredator(Vector2 spawnPos, Genome genome)
     {
         if (predatorPrefab == null) return;
@@ -246,9 +278,13 @@ public class EcosystemManager : MonoBehaviour
         }
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    /// <summary>Returns a position slightly offset from an origin to separate offspring from parent.</summary>
+    /// <param name="origin">Parent world-space position.</param>
+    /// <returns>Offset world-space position.</returns>
     private Vector2 Offset(Vector2 origin) => origin + UnityEngine.Random.insideUnitCircle * 1.5f;
 
+    /// <summary>Returns a random position within the current map bounds.</summary>
+    /// <returns>Random world-space position inside boundaries.</returns>
     private Vector2 RandomPosition()
     {
         if (BoundaryManager.Instance != null)
@@ -257,18 +293,21 @@ public class EcosystemManager : MonoBehaviour
     }
 }
 
-/// <summary>
-/// Tiny helper that fires a callback when its GameObject is destroyed.
-/// Used so EcosystemManager can decrement _plantCount even though Plant
-/// doesn't extend EntityBase (which has OnDeath built in).
-/// </summary>
+/// <summary>Fires a callback when its GameObject is destroyed.</summary>
+/// <remarks>
+/// Added to plant GameObjects at spawn so EcosystemManager can decrement
+/// its plant counter without Plant extending EntityBase.
+/// </remarks>
 public class PlantDeathProxy : MonoBehaviour
 {
     private System.Action _onDestroy;
     private bool _fired;
 
+    /// <summary>Registers the callback to invoke on destruction.</summary>
+    /// <param name="callback">Action to call when this object is destroyed.</param>
     public void Init(System.Action callback) => _onDestroy = callback;
 
+    /// <summary>Invokes the registered callback once on destruction.</summary>
     private void OnDestroy()
     {
         if (_fired) return;
