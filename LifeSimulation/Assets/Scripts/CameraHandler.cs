@@ -31,16 +31,7 @@ public class CameraHandler : MonoBehaviour
     public float minSize = 5f;
     public float maxSize = 120f;
 
-    [Tooltip("Multiplies map half-extent for pan limits so the viewport edge is not glued to the terrain (1 = tight to map).")]
-    [SerializeField] float panBoundsMargin = 2.5f;
-
     private float _halfMap;
-    private float _panHalfX;
-    private float _panHalfY;
-    /// <summary> Pan/clamp origin; updated when the tilemap bounds are known so limits stay aligned with the map. </summary>
-    private float _panOriginX;
-    private float _panOriginY;
-
     private Rigidbody2D _rb;
     private Camera _cam;
     private Vector2 _input;
@@ -52,12 +43,13 @@ public class CameraHandler : MonoBehaviour
         _cam = GetComponentInChildren<Camera>();
         _rb.freezeRotation = true;
 
-        ApplyPresetHalfMap();
+        UpdateTiers();
     }
 
     /// <summary> Re-applies tier half-size and max zoom from <see cref="selectedSize"/> (e.g. when the preset changes in the UI). </summary>
-    public void ApplyPresetHalfMap()
+    public void UpdateTiers()
     {
+        // Set the boundary based on the selection
         switch (selectedSize)
         {
             case MapSize.Small: _halfMap = 25f; break;
@@ -65,36 +57,8 @@ public class CameraHandler : MonoBehaviour
             case MapSize.Large: _halfMap = 150f; break;
         }
 
-        float margin = Mathf.Max(1f, panBoundsMargin);
-        _panHalfX = _halfMap * margin;
-        _panHalfY = _halfMap * margin;
-        _panOriginX = 0f;
-        _panOriginY = 0f;
-    }
-
-    /// <summary> Call after <see cref="BoundaryManager.SetMapBounds"/> so the rig sits on the map center (pan limits use the same preset half-size as before). </summary>
-    public void AlignPanOriginToMapBounds()
-    {
-        float margin = Mathf.Max(1f, panBoundsMargin);
-
-        if (BoundaryManager.Instance == null || !BoundaryManager.Instance.HasMapBounds)
-        {
-            _panOriginX = 0f;
-            _panOriginY = 0f;
-            _panHalfX = _halfMap * margin;
-            _panHalfY = _halfMap * margin;
-            return;
-        }
-
-        BoundaryManager b = BoundaryManager.Instance;
-        _panOriginX = (b.MinX + b.MaxX) * 0.5f;
-        _panOriginY = (b.MinY + b.MaxY) * 0.5f;
-
-        _panHalfX = (b.MaxX - b.MinX) * 0.5f * margin;
-        _panHalfY = (b.MaxY - b.MinY) * 0.5f * margin;
-
-        transform.position = new Vector3(_panOriginX, _panOriginY, transform.position.z);
-        ApplyBoundaries();
+        // Lock maxSize to the half-height so they can't zoom out past the map
+        maxSize = _halfMap;
     }
 
     /// <summary> Captures user input </summary>
@@ -125,11 +89,11 @@ public class CameraHandler : MonoBehaviour
         float camHalfWidth = camHalfHeight * _cam.aspect;
 
         // How far the rig can move before the view rect hits the (loosened) pan box
-        float limitX = Mathf.Max(0, _panHalfX - camHalfWidth);
-        float limitY = Mathf.Max(0, _panHalfY - camHalfHeight);
+        float limitX = Mathf.Max(0, _halfMap - camHalfWidth);
+        float limitY = Mathf.Max(0, _halfMap - camHalfHeight);
 
-        float clampedX = Mathf.Clamp(transform.position.x, _panOriginX - limitX, _panOriginX + limitX);
-        float clampedY = Mathf.Clamp(transform.position.y, _panOriginY - limitY, _panOriginY + limitY);
+        float clampedX = Mathf.Clamp(transform.position.x, -limitX, limitX);
+        float clampedY = Mathf.Clamp(transform.position.y, -limitY, limitY);
 
         transform.position = new Vector3(clampedX, clampedY, transform.position.z);
     }

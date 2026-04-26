@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "io.github.gkngkc.unity-standalone-file-browser": "https://github.com/shiena/UnityStandaloneFileBrowser.git?path=Packages/StandaloneFileBrowser#upm",
     "com.unity.2d.animation": "13.0.2",
     "com.unity.2d.aseprite": "3.0.1",
     "com.unity.2d.psdimporter": "12.0.1",

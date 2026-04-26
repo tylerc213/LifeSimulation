@@ -1,11 +1,26 @@
-﻿using System;
+// -----------------------------------------------------------------------------
+// Project:     EXTENDED LIFE SIMULATION CAPSTONE ASSIGNMENT
+// Item:        Lifeform States
+// Requirement: Lifeform Simulation
+// Author:      Luke Kivett
+// Date:        04/06/2026
+// Version:     0.0.0
+//
+// Description:
+//    AI controller for predator entities. Implements a two-state machine:
+//    Hunt (hungry, prey in range) > Patrol. Supports venom damage over time,
+//    ambush bonus damage, apex prey targeting, and Mendelian reproduction.
+// -----------------------------------------------------------------------------
+
+using System;
 using UnityEngine;
 
-/// <summary>
-/// Predator AI — HUNT (hungry) > PATROL.
-/// Integrates with PredatorGenetics for stat modifiers and special behaviours.
-/// Tag this GameObject "Predator".
-/// </summary>
+/// <summary>Two-state AI controller for predator entities.</summary>
+/// <remarks>
+/// Tag this GameObject "Predator". Requires PredatorGenetics, SteeringAvoidance,
+/// StateLabel child, and VisionCone on the same prefab for full functionality.
+/// Attack uses OnTriggerStay2D so multiple hits land while overlapping a target.
+/// </remarks>
 [RequireComponent(typeof(Rigidbody2D))]
 public class Predator : EntityBase
 {
@@ -30,7 +45,6 @@ public class Predator : EntityBase
     // reproductionHungerThreshold so a single kill doesn't immediately stop the hunt
     [SerializeField] private float huntHungerThreshold = 60f;
 
-    // ── State ─────────────────────────────────────────────────────────────────
     private enum State { Patrol, Hunt }
     private State _state = State.Patrol;
     private Rigidbody2D _rb;
@@ -57,7 +71,7 @@ public class Predator : EntityBase
     private const float StuckMinMove = 0.15f;
     private const float DeadEndCooldownTime = 0.5f;
 
-    // ── Unity ─────────────────────────────────────────────────────────────────
+    /// <summary>Caches all required components and initialises patrol state.</summary>
     protected override void Awake()
     {
         base.Awake();
@@ -73,6 +87,7 @@ public class Predator : EntityBase
         _lastPosition = transform.position;
     }
 
+    /// <summary>Ticks venom, updates AI state, and runs movement each frame.</summary>
     protected override void Update()
     {
         base.Update();
@@ -94,7 +109,7 @@ public class Predator : EntityBase
         TryReproduce();
     }
 
-    // ── Timers ────────────────────────────────────────────────────────────────
+    /// <summary>Decrements all cooldown and interval timers each frame.</summary>
     private void UpdateTimers()
     {
         _patrolTimer -= Time.deltaTime;
@@ -103,7 +118,7 @@ public class Predator : EntityBase
         _deadEndCooldown -= Time.deltaTime;
     }
 
-    // ── Perception ────────────────────────────────────────────────────────────
+    /// <summary>Evaluates whether to hunt, continue chasing, or patrol.</summary>
     private void UpdateState()
     {
         // If currently hunting a live prey, keep hunting unless it gets too far away
@@ -140,7 +155,7 @@ public class Predator : EntityBase
         }
     }
 
-    // ── State Execution ───────────────────────────────────────────────────────
+    /// <summary>Dispatches movement execution to the active state handler.</summary>
     private void ExecuteState()
     {
         switch (_state)
@@ -158,6 +173,7 @@ public class Predator : EntityBase
 
     private string _currentStateLabel = StateLabel.Patrol;
 
+    /// <summary>Updates the state label and caches the current label string.</summary>
     private void UpdateLabel()
     {
         if (_label == null) return;
@@ -166,6 +182,7 @@ public class Predator : EntityBase
         _label.SetState(_currentStateLabel);
     }
 
+    /// <summary>Moves toward the current prey target at hunt speed.</summary>
     private void ExecuteHunt()
     {
         if (_prey == null) { _state = State.Patrol; return; }
@@ -174,6 +191,10 @@ public class Predator : EntityBase
         Vector2 dir = ((Vector2)_prey.position - (Vector2)transform.position).normalized;
         Vector2 vel = dir * huntSpeed;
         if (_genetics != null) vel *= _genetics.SpeedMultiplier;
+        if (_genetics != null && _genetics.IsReptile && EnvironmentHandler.Instance != null)
+        {
+            vel *= EnvironmentHandler.Instance.GetReptileSpeedMultiplier();
+        }
         if (_avoidance != null)
         {
             vel = _avoidance.GetAvoidanceVelocity(vel);
@@ -182,6 +203,7 @@ public class Predator : EntityBase
         _rb.linearVelocity = vel;
     }
 
+    /// <summary>Moves toward the current patrol target at patrol speed.</summary>
     private void ExecutePatrol()
     {
         Vector2 toTarget = _patrolTarget - (Vector2)transform.position;
@@ -190,6 +212,10 @@ public class Predator : EntityBase
 
         Vector2 vel = toTarget.normalized * patrolSpeed;
         if (_genetics != null) vel *= _genetics.SpeedMultiplier;
+        if (_genetics != null && _genetics.IsReptile && EnvironmentHandler.Instance != null)
+        {
+            vel *= EnvironmentHandler.Instance.GetReptileSpeedMultiplier();
+        }
         if (_avoidance != null)
         {
             vel = _avoidance.GetAvoidanceVelocity(vel);
@@ -198,7 +224,8 @@ public class Predator : EntityBase
         _rb.linearVelocity = vel;
     }
 
-    // ── Attack on Contact ─────────────────────────────────────────────────────
+    /// <summary>Deals attack damage to overlapping prey on each cooldown tick.</summary>
+    /// <remarks>Uses OnTriggerStay2D so the predator keeps attacking while overlapping.</remarks>
     private void OnTriggerStay2D(Collider2D other)
     {
         if (_attackTimer > 0f) return;
@@ -243,7 +270,7 @@ public class Predator : EntityBase
         }
     }
 
-    // ── Reproduction ──────────────────────────────────────────────────────────
+    /// <summary>Spawns a predator offspring when hunger and cooldown conditions are met.</summary>
     private void TryReproduce()
     {
         if (_reproTimer > 0f) return;
@@ -255,22 +282,34 @@ public class Predator : EntityBase
         EcosystemManager.Instance?.SpawnPredatorOffspring((Vector2)transform.position, myGenome, mateGenome);
     }
 
+    /// <summary>Finds the genome of a nearby predator to use as a reproduction mate.</summary>
+    /// <returns>Genome of the nearest valid predator mate, or null if none found.</returns>
     private Genome FindMateGenome()
     {
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, 3f);
         foreach (var h in hits)
         {
-            if (!h.CompareTag("Predator") || h.gameObject == gameObject) continue;
-            PredatorGenetics g = h.GetComponent<PredatorGenetics>();
-            if (g != null) return g.Genome;
+            if (h.isTrigger) continue;
+
+            Transform root = h.transform;
+            while (root.parent != null && !root.CompareTag("Predator"))
+                root = root.parent;
+
+            if (!root.CompareTag("Predator")) continue;
+            if (root == transform) continue;  // skip self
+
+            PredatorGenetics g = root.GetComponent<PredatorGenetics>();
+            if (g != null && g.Genome != null) return g.Genome;
         }
         return null;
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    /// <summary>Finds the nearest living grazer within detection range.</summary>
+    /// <returns>Transform of the nearest grazer, or null if none found.</returns>
     private Transform FindNearestGrazer()
     {
-        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, detectRadius);
+        float currentRadius = GetCurrentDetectRadius();
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, currentRadius);
         Transform nearest = null;
         float minDist = float.MaxValue;
         foreach (var h in hits)
@@ -284,9 +323,12 @@ public class Predator : EntityBase
         return nearest;
     }
 
+    /// <summary>Finds the nearest living grazer or predator (Apex mode) within detection range.</summary>
+    /// <returns>Transform of the nearest valid prey, or null if none found.</returns>
     private Transform FindNearestPrey()
     {
-        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, detectRadius);
+        float currentRadius = GetCurrentDetectRadius();
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, currentRadius);
         Transform nearest = null;
         float minDist = float.MaxValue;
         foreach (var h in hits)
@@ -302,6 +344,7 @@ public class Predator : EntityBase
         return nearest;
     }
 
+    /// <summary>Detects when the predator is stuck and selects a new patrol target to escape.</summary>
     private void CheckIfStuck()
     {
         Vector2 goal = _state == State.Hunt && _prey != null
@@ -338,6 +381,7 @@ public class Predator : EntityBase
         }
     }
 
+    /// <summary>Selects a new patrol destination biased toward the map centre when near walls.</summary>
     private void PickNewPatrolTarget()
     {
         _patrolTimer = patrolInterval;
@@ -381,6 +425,7 @@ public class Predator : EntityBase
         _patrolTarget = candidate;
     }
 
+    /// <summary>Snaps the predator back inside map bounds and picks a new inward patrol target.</summary>
     private void ClampToBounds()
     {
         if (BoundaryManager.Instance == null) return;
@@ -391,5 +436,24 @@ public class Predator : EntityBase
             _rb.linearVelocity = Vector2.zero;
             PickNewPatrolTarget();
         }
+    }
+
+    private float GetCurrentDetectRadius()
+    {
+        float visionMult = 1.0f;
+
+        if (EnvironmentHandler.Instance != null)
+        {
+            float intensity = EnvironmentHandler.Instance.SunlightIntensity;
+
+            // If they have the trait, their vision floor is 0.8 (Night Hunter)
+            // If they don't, they are blind like everyone else (0.2 floor)
+            bool hasNightVision = _genetics != null && _genetics.HasNightVision;
+            float floor = hasNightVision ? 0.8f : 0.2f;
+
+            visionMult = Mathf.Lerp(floor, 1.0f, intensity);
+        }
+
+        return detectRadius * visionMult;
     }
 }

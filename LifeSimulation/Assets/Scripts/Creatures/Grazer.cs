@@ -1,11 +1,26 @@
-﻿using System;
+// -----------------------------------------------------------------------------
+// Project:     EXTENDED LIFE SIMULATION CAPSTONE ASSIGNMENT
+// Item:        Interactions
+// Requirement: Lifeform Simulation
+// Author:      Luke Kivett
+// Date:        04/06/2026
+// Version:     0.0.0
+//
+// Description:
+//    AI controller for grazer entities. Implements a priority state machine:
+//    Flee (predator nearby) > SeekPlant (hungry) > Wander. Integrates with
+//    GrazerGenetics for stat modifiers, SteeringAvoidance for obstacle routing,
+//    and supports Mendelian reproduction with nearby mates.
+// -----------------------------------------------------------------------------
+using System;
 using UnityEngine;
 
-/// <summary>
-/// Grazer AI — FLEE (predator nearby) > SEEK PLANT (hungry) > WANDER.
-/// Integrates with GrazerGenetics for stat modifiers and special behaviours.
-/// Tag this GameObject "Grazer".
-/// </summary>
+/// <summary>Priority state machine AI for grazer entities.</summary>
+/// <remarks>
+/// Tag this GameObject "Grazer". Requires GrazerGenetics, SteeringAvoidance,
+/// StateLabel child, and VisionCone on the same prefab for full functionality.
+/// Each component is optional; the grazer degrades gracefully without them.
+/// </remarks>
 [RequireComponent(typeof(Rigidbody2D))]
 public class Grazer : EntityBase
 {
@@ -28,7 +43,6 @@ public class Grazer : EntityBase
     [SerializeField] private float reproductionHungerThreshold = 80f;
     [SerializeField] private float reproductionCooldown = 20f;
 
-    // ── State ─────────────────────────────────────────────────────────────────
     private enum State { Wander, SeekPlant, Flee }
     private State _state = State.Wander;
     private Rigidbody2D _rb;
@@ -44,7 +58,9 @@ public class Grazer : EntityBase
     private Plant _targetPlant;
     private Transform _nearestPredator;
 
+    // Cached last known predator position for flee continuation after losing sight
     private Vector2 _lastKnownPredatorPos;
+    // Timer keeping the grazer in Flee state briefly after a predator leaves range
     private float _fleeTimer = 0f;
     private const float MinFleeDuration = 1.5f;
 
@@ -60,7 +76,7 @@ public class Grazer : EntityBase
     private const float StuckMinMove = 0.15f; // units — less than this = stuck
     private const float DeadEndCooldownTime = 0.5f;
 
-    // ── Unity ─────────────────────────────────────────────────────────────────
+    /// <summary>Caches all required components and initialises movement state.</summary>
     protected override void Awake()
     {
         base.Awake();
@@ -77,6 +93,7 @@ public class Grazer : EntityBase
         _lastPosition = transform.position;
     }
 
+    /// <summary>Ticks poison damage, updates AI state, and runs movement each frame.</summary>
     protected override void Update()
     {
         base.Update();
@@ -93,7 +110,7 @@ public class Grazer : EntityBase
         TryReproduce();
     }
 
-    // ── Timers ────────────────────────────────────────────────────────────────
+    /// <summary>Decrements all cooldown and interval timers each frame.</summary>
     private void UpdateTimers()
     {
         _wanderTimer -= Time.deltaTime;
@@ -103,13 +120,13 @@ public class Grazer : EntityBase
         _fleeTimer -= Time.deltaTime;
     }
 
-    // ── Perception ────────────────────────────────────────────────────────────
+    /// <summary>Evaluates perception and selects the highest-priority AI state.</summary>
     private void UpdateState()
     {
-        // ── Predator check (highest priority, always re-evaluated) ────────────
         bool camouflaged = false;
         if (_genetics != null && _genetics.HasCamouflage)
         {
+            // Check for nearby objects that could provide cover for camouflage
             Collider2D[] nearby = Physics2D.OverlapCircleAll(transform.position, 0.8f);
             foreach (var c in nearby)
             {
@@ -130,8 +147,8 @@ public class Grazer : EntityBase
             }
         }
 
-        // Keep fleeing for MinFleeDuration seconds after predator leaves range
-        // This prevents rapid Flee/SeekPlant swapping at the detection boundary
+        // Hysteresis: keep fleeing briefly after predator leaves detection range
+        // to prevent rapid Flee/SeekPlant flickering at the boundary edge
         if (_fleeTimer > 0f)
         {
             _state = State.Flee;
@@ -140,18 +157,14 @@ public class Grazer : EntityBase
 
         _nearestPredator = null;
 
-        // ── Plant seeking with hysteresis ─────────────────────────────────────
         if (Hunger < reproductionHungerThreshold)
         {
-            // If already seeking a plant, keep targeting it until it's gone —
-            // don't re-scan every frame which causes flickering at detect-radius edge
             if (_state == State.SeekPlant && _targetPlant != null
                 && _targetPlant.gameObject.activeInHierarchy)
             {
-                return;   // stay in SeekPlant with the same target
+                return; 
             }
 
-            // Only search for a new plant when we don't have one
             _targetPlant = FindBestPlant();
             if (_targetPlant != null)
             {
@@ -163,7 +176,7 @@ public class Grazer : EntityBase
         _state = State.Wander;
     }
 
-    // ── State Execution ───────────────────────────────────────────────────────
+    /// <summary>Dispatches movement execution to the active state handler.</summary>
     private void ExecuteState()
     {
         switch (_state)
@@ -186,6 +199,7 @@ public class Grazer : EntityBase
 
     private string _currentStateLabel = StateLabel.Wander;
 
+    /// <summary>Updates the state label text and caches the current label string.</summary>
     private void UpdateLabel()
     {
         if (_label == null) return;
@@ -199,6 +213,7 @@ public class Grazer : EntityBase
         _label.SetState(_currentStateLabel);
     }
 
+    /// <summary>Moves away from the last known predator position at flee speed.</summary>
     private void ExecuteFlee()
     {
         // Use last known position so flee keeps working during the timer cooldown
@@ -209,6 +224,10 @@ public class Grazer : EntityBase
         Vector2 awayDir = ((Vector2)transform.position - from).normalized;
         Vector2 vel = awayDir * fleeSpeed;
         if (_genetics != null) vel *= _genetics.SpeedMultiplier;
+        if (_genetics != null && _genetics.IsReptile && EnvironmentHandler.Instance != null)
+        {
+            vel *= EnvironmentHandler.Instance.GetReptileSpeedMultiplier();
+        }
         if (_avoidance != null)
         {
             vel = _avoidance.GetAvoidanceVelocity(vel);
@@ -217,6 +236,7 @@ public class Grazer : EntityBase
         _rb.linearVelocity = vel;
     }
 
+    /// <summary>Moves toward the target plant and takes a bite on arrival.</summary>
     private void ExecuteSeekPlant()
     {
         if (_targetPlant == null) { _state = State.Wander; return; }
@@ -235,6 +255,10 @@ public class Grazer : EntityBase
         {
             Vector2 vel = dir.normalized * moveSpeed;
             if (_genetics != null) vel *= _genetics.SpeedMultiplier;
+            if (_genetics != null && _genetics.IsReptile && EnvironmentHandler.Instance != null)
+            {
+                vel *= EnvironmentHandler.Instance.GetReptileSpeedMultiplier();
+            }
             if (_avoidance != null)
             {
                 vel = _avoidance.GetAvoidanceVelocity(vel);
@@ -244,6 +268,7 @@ public class Grazer : EntityBase
         }
     }
 
+    /// <summary>Moves toward the wander target with optional herd flocking offset.</summary>
     private void ExecuteWander()
     {
         Vector2 toTarget = _wanderTarget - (Vector2)transform.position;
@@ -253,7 +278,10 @@ public class Grazer : EntityBase
         Vector2 vel = toTarget.normalized * (moveSpeed * 0.6f);
 
         if (_genetics != null) vel *= _genetics.SpeedMultiplier;
-
+        if (_genetics != null && _genetics.IsReptile && EnvironmentHandler.Instance != null)
+        {
+            vel *= EnvironmentHandler.Instance.GetReptileSpeedMultiplier();
+        }
         if (_avoidance != null)
         {
             vel = _avoidance.GetAvoidanceVelocity(vel);
@@ -262,7 +290,8 @@ public class Grazer : EntityBase
         _rb.linearVelocity = vel;
     }
 
-    // ── Actions ───────────────────────────────────────────────────────────────
+    /// <summary>Attempts to take one bite from a plant subject to attractiveness and cooldown.</summary>
+    /// <param name="plant">The plant to attempt eating.</param>
     private void TryEat(Plant plant)
     {
         if (_eatTimer > 0f || plant == null) return;
@@ -289,7 +318,8 @@ public class Grazer : EntityBase
             _targetPlant = null;
     }
 
-    /// <summary>Reflect damage back to attacker if Spiky trait is active.</summary>
+    /// <summary>Reflects a portion of incoming damage back to the attacker if Spiky is expressed.</summary>
+    /// <param name="amount">Incoming damage amount.</param>
     public override void TakeDamage(float amount)
     {
         if (_genetics != null && _genetics.HasSpiky)
@@ -304,7 +334,8 @@ public class Grazer : EntityBase
         }
         base.TakeDamage(amount);
     }
-
+    
+    /// <summary>Spawns a grazer offspring when hunger and cooldown conditions are met.</summary>
     private void TryReproduce()
     {
         if (_reproTimer > 0f) return;
@@ -317,24 +348,33 @@ public class Grazer : EntityBase
         EcosystemManager.Instance?.SpawnGrazerOffspring((Vector2)transform.position, myGenome, mateGenome);
     }
 
+    /// <summary>Finds the genome of a nearby same-species creature to use as a reproduction mate.</summary>
+    /// <param name="tag">Tag of the target species.</param>
+    /// <returns>Genome of the nearest valid mate, or null if none found.</returns>
     private Genome FindMateGenome(string tag)
     {
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, 3f);
         foreach (var h in hits)
         {
-            if (!h.CompareTag(tag) || h.gameObject == gameObject) continue;
-            GrazerGenetics g = h.GetComponent<GrazerGenetics>();
-            if (g != null) return g.Genome;
+            if (h.isTrigger) continue;
+
+            // Walk to root to get the actual creature GameObject
+            Transform root = h.transform;
+            while (root.parent != null && !root.CompareTag(tag))
+                root = root.parent;
+
+            if (!root.CompareTag(tag)) continue;
+            if (root == transform) continue;  // skip self
+
+            GrazerGenetics g = root.GetComponent<GrazerGenetics>();
+            if (g != null && g.Genome != null) return g.Genome;
         }
         return null;
     }
 
+    /// <summary>Detects when the agent is stuck and picks a new goal to escape.</summary>
     private void CheckIfStuck()
     {
-        // While seeking food, standing still at (or pressed against) the plant is
-        // expected — velocity is zero when eating, and colliders may prevent reaching
-        // the exact center. Do not treat that as "stuck" or we abandon the plant
-        // after a few seconds and eating becomes rare.
         if (_state == State.SeekPlant && _targetPlant != null)
         {
             float d = Mathf.Min(
@@ -404,6 +444,7 @@ public class Grazer : EntityBase
         }
     }
 
+    /// <summary>Selects a new wander destination biased toward the map centre when near walls.</summary>
     private void PickNewWanderTarget()
     {
         _wanderTimer = wanderInterval;
@@ -451,7 +492,6 @@ public class Grazer : EntityBase
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
-
     /// <summary>Closest distance between grazer and plant hulls; 0 if overlapping.</summary>
     private float GetPlantColliderSeparation(Plant plant)
     {
@@ -471,9 +511,20 @@ public class Grazer : EntityBase
         return GetPlantColliderSeparation(plant) <= eatDistance;
     }
 
+    /// <summary>Finds the nearest non-trigger root transform with a given tag within a radius.</summary>
+    /// <param name="tag">Tag to search for.</param>
+    /// <param name="radius">Search radius in world units.</param>
+    /// <returns>Transform of the nearest matching entity root, or null if none found.</returns>
     private Transform FindNearest(string tag, float radius)
     {
-        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, radius);
+        // Apply visibility penalty to the search radius
+        float currentVisionRadius = radius;
+        if (EnvironmentHandler.Instance != null)
+        {
+            currentVisionRadius *= EnvironmentHandler.Instance.VisibilityMultiplier;
+        }
+
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, currentVisionRadius);
         Transform nearest = null;
         float minDist = float.MaxValue;
         foreach (var h in hits)
@@ -481,6 +532,7 @@ public class Grazer : EntityBase
             // Skip trigger colliders — those are detection zones, not physical bodies.
             // We only want to detect the actual root entity position.
             if (h.isTrigger) continue;
+             Plant p = h.GetComponentInParent<Plant>();
 
             // Walk up to the root tagged object in case the collider is on a child
             Transform root = h.transform;
@@ -500,11 +552,8 @@ public class Grazer : EntityBase
         return nearest;
     }
 
-    /// <summary>
-    /// Picks the most attractive fully-grown plant in range.
-    /// Weighs attractiveness score against distance so grazers don't ignore nearby plants
-    /// in favour of a very tasty but far-away one.
-    /// </summary>
+    /// <summary>Finds the highest-scoring fully-grown plant within detection range.</summary>
+    /// <returns>Best plant weighted by attractiveness over distance, or null if none found.</returns>
     private Plant FindBestPlant()
     {
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, plantDetectRadius);
@@ -523,6 +572,7 @@ public class Grazer : EntityBase
         return best;
     }
 
+    /// <summary>Snaps the grazer back inside map bounds and picks a new inward target.</summary>
     private void ClampToBounds()
     {
         if (BoundaryManager.Instance == null) return;

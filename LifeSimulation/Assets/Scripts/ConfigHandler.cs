@@ -17,6 +17,9 @@ using UnityEngine.SceneManagement;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
+#if UNITY_STANDALONE_WIN || UNITY_STANDALONE_OSX || UNITY_STANDALONE_LINUX
+using SFB;
+#endif
 
 /// <summary> handles configuration scene JSON import/export </summary>
 public class ConfigHandler : MonoBehaviour
@@ -34,9 +37,75 @@ public class ConfigHandler : MonoBehaviour
     public void ImportConfigurationJson()
     {
         Debug.Log("Import Configuration JSON Selected");
-        if (!TryGetImportJsonPath(out string path))
+#if UNITY_EDITOR
+        if (!TryGetImportJsonPathEditor(out string path))
             return;
+        ApplyImportedJsonFromPath(path);
+#elif UNITY_STANDALONE_WIN || UNITY_STANDALONE_OSX || UNITY_STANDALONE_LINUX
+        var jsonFilters = new ExtensionFilter[]
+        {
+            new ExtensionFilter("JSON", "json"),
+            new ExtensionFilter("All files", "*"),
+        };
+        StandaloneFileBrowser.OpenFilePanelAsync(
+            "Import JSON",
+            "",
+            jsonFilters,
+            false,
+            paths =>
+            {
+                if (paths == null || paths.Length == 0 || string.IsNullOrEmpty(paths[0]))
+                    return;
+                ApplyImportedJsonFromPath(paths[0]);
+            });
+#else
+        if (!TryGetImportJsonPathFallback(out string path))
+            return;
+        ApplyImportedJsonFromPath(path);
+#endif
+    }
 
+    /// <summary> writes persisted simulation settings (or in-memory store when present) to a chosen file </summary>
+    public void ExportConfigurationJson()
+    {
+        Debug.Log("Export Configuration JSON Selected");
+#if UNITY_EDITOR
+        if (!TryGetExportJsonPathEditor(out string path))
+            return;
+        WriteExportToPath(path);
+#elif UNITY_STANDALONE_WIN || UNITY_STANDALONE_OSX || UNITY_STANDALONE_LINUX
+        var jsonFilters = new ExtensionFilter[]
+        {
+            new ExtensionFilter("JSON", "json"),
+            new ExtensionFilter("All files", "*"),
+        };
+        StandaloneFileBrowser.SaveFilePanelAsync(
+            "Export JSON",
+            "",
+            defaultConfigFileName,
+            jsonFilters,
+            path =>
+            {
+                if (string.IsNullOrEmpty(path))
+                    return;
+                WriteExportToPath(path);
+            });
+#else
+        if (!TryGetExportJsonPathFallback(out string path))
+            return;
+        WriteExportToPath(path);
+#endif
+    }
+
+    /// <summary> returns to main menu scene </summary>
+    public void BackToMainMenu()
+    {
+        Debug.Log("Back To Main Menu Selected");
+        SceneManager.LoadScene(mainMenuSceneName);
+    }
+
+    void ApplyImportedJsonFromPath(string path)
+    {
         string json = File.ReadAllText(path);
         ImportedConfigurationJson = json;
 
@@ -59,13 +128,8 @@ public class ConfigHandler : MonoBehaviour
             SimulationSettingsStore.Instance.ReplaceAndApply(settings, saveToDisk: false);
     }
 
-    /// <summary> writes persisted simulation settings (or in-memory store when present) to a chosen file </summary>
-    public void ExportConfigurationJson()
+    void WriteExportToPath(string path)
     {
-        Debug.Log("Export Configuration JSON Selected");
-        if (!TryGetExportJsonPath(out string path))
-            return;
-
         SimulationSettings settings = SimulationSettingsStore.Instance != null
             ? SimulationSettingsStore.Instance.Current
             : SimulationSettingsStore.LoadPersistedOrDefaults(defaultConfigFileName);
@@ -73,39 +137,37 @@ public class ConfigHandler : MonoBehaviour
         File.WriteAllText(path, JsonUtility.ToJson(settings, true));
     }
 
-    /// <summary> returns to main menu scene </summary>
-    public void BackToMainMenu()
-    {
-        Debug.Log("Back To Main Menu Selected");
-        SceneManager.LoadScene(mainMenuSceneName);
-    }
-
-    bool TryGetImportJsonPath(out string path)
-    {
-        path = null;
 #if UNITY_EDITOR
+    bool TryGetImportJsonPathEditor(out string path)
+    {
         path = EditorUtility.OpenFilePanel("Import JSON", "", "json");
         return !string.IsNullOrEmpty(path);
-#else
+    }
+
+    bool TryGetExportJsonPathEditor(out string path)
+    {
+        path = EditorUtility.SaveFilePanel("Export JSON", "", defaultConfigFileName, "json");
+        return !string.IsNullOrEmpty(path);
+    }
+#endif
+
+#if !(UNITY_EDITOR || UNITY_STANDALONE_WIN || UNITY_STANDALONE_OSX || UNITY_STANDALONE_LINUX)
+    bool TryGetImportJsonPathFallback(out string path)
+    {
+        path = null;
         path = GetDefaultConfigPath();
         if (File.Exists(path))
             return true;
-        Debug.LogWarning("Import: place a JSON file at " + path + " or run in the Editor to choose a file.");
+        Debug.LogWarning("Import: place a JSON file at " + path + " or use a desktop build to choose a file.");
         return false;
-#endif
     }
 
-    bool TryGetExportJsonPath(out string path)
+    bool TryGetExportJsonPathFallback(out string path)
     {
-        path = null;
-#if UNITY_EDITOR
-        path = EditorUtility.SaveFilePanel("Export JSON", "", defaultConfigFileName, "json");
-        return !string.IsNullOrEmpty(path);
-#else
         path = GetDefaultConfigPath();
         return true;
-#endif
     }
+#endif
 
     string GetDefaultConfigPath()
     {

@@ -1,3 +1,15 @@
+// -----------------------------------------------------------------------------
+// Project:     EXTENDED LIFE SIMULATION CAPSTONE ASSIGNMENT
+// Item:        Interactions
+// Requirement: Lifeform Simulation
+// Author:      Luke Kivett
+// Date:        4/13/2026
+// Version:     0.0.0
+//
+// Description:
+//    Exposes world-space bounds for agent clamping and random position sampling.
+//    Supports two modes: camera-based (default) and map-based (set by MapGenerator2D).
+// -----------------------------------------------------------------------------
 using System.Diagnostics;
 using System;
 using UnityEngine;
@@ -17,6 +29,7 @@ using UnityEngine.Tilemaps;
 /// </summary>
 public class BoundaryManager : MonoBehaviour
 {
+    /// <summary>Singleton instance.</summary>
     public static BoundaryManager Instance { get; private set; }
 
     [HideInInspector] public float MinX, MaxX, MinY, MaxY;
@@ -28,7 +41,8 @@ public class BoundaryManager : MonoBehaviour
 
     /// <summary> True after <see cref="SetMapBounds"/> — agents use fixed map rect, not the camera viewport. </summary>
     public bool HasMapBounds => _usingMapBounds;
-
+    
+    /// <summary>Initialises singleton and performs first bounds refresh.</summary>
     private void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
@@ -36,7 +50,7 @@ public class BoundaryManager : MonoBehaviour
         _cam = Camera.main;
         RefreshBounds();
     }
-
+    /// <summary>Refreshes camera bounds each frame when not using map bounds.</summary>
     private void Update()
     {
         // Only refresh from camera if no map bounds have been provided
@@ -74,7 +88,7 @@ public class BoundaryManager : MonoBehaviour
         _usingMapBounds = false;
         RefreshBounds();
     }
-
+    /// <summary>Recalculates bounds from the main camera's orthographic viewport.</summary>
     private void RefreshBounds()
     {
         if (_cam == null) return;
@@ -86,14 +100,19 @@ public class BoundaryManager : MonoBehaviour
         MinY = p.y - h + padding;
         MaxY = p.y + h - padding;
     }
-
+    
+    /// <summary>Clamps a position to within the current boundaries.</summary>
+    /// <param name="pos">World-space position to clamp.</param>
+    /// <returns>Clamped world-space position.</returns>
     public Vector2 Clamp(Vector2 pos)
     {
         return new Vector2(
             Mathf.Clamp(pos.x, MinX, MaxX),
             Mathf.Clamp(pos.y, MinY, MaxY));
     }
-
+    
+    /// <summary>Returns a random position within the current boundaries.</summary>
+    /// <returns>Random world-space position inside bounds.</returns>
     public Vector2 RandomPosition()
     {
         return new Vector2(
