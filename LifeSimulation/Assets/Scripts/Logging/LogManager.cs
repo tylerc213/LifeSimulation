@@ -20,6 +20,21 @@ using UnityEngine;
 /// </summary>
 public class LogManager : MonoBehaviour
 {
+    public static LogManager Instance;
+
+    void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+
     public int currentTick = 0;
     public int logInterval = 600;
 
