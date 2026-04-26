@@ -47,8 +47,16 @@ public class SimulationLogger : MonoBehaviour
     public void BeginLoggingSession()
     {
         string timestamp = System.DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-        filepath = Application.persistentDataPath + "/population_log_" + timestamp + ".json";
+
+        string exeDir = System.IO.Path.GetDirectoryName(Application.dataPath);
+        string logDir = System.IO.Path.Combine(exeDir, "Logs");
+
+        System.IO.Directory.CreateDirectory(logDir);
+
+        filepath = System.IO.Path.Combine(logDir, $"population_log_{timestamp}.json");
+
         File.WriteAllText(filepath, "");
+
         Debug.Log("Log file created at: " + filepath);
     }
 
