@@ -39,6 +39,12 @@ public class CameraHandler : MonoBehaviour
     public float minSize = 5f;
     public float maxSize = 120f;
 
+    [Tooltip("Scales Input.mouseScrollDelta.y (wheel / trackpads that emit scroll as pixel delta).")]
+    public float mouseScrollDeltaScale = 0.03f;
+
+    [Tooltip("Orthographic zoom per pixel of pinch gap change (two-finger pinch, macOS trackpad).")]
+    public float pinchZoomSensitivity = 0.012f;
+
     private float _halfMap;
     private Rigidbody2D _rb;
     private Camera _cam;
@@ -125,17 +131,43 @@ public class CameraHandler : MonoBehaviour
     /// <summary>
     /// Handles camera zoom input and enforces zoom limits.
     /// </summary>
+    /// <remarks>
+    /// Uses <see cref="Input.mouseScrollDelta"/> and legacy scroll axis for wheel / Windows trackpads,
+    /// and two-finger pinch via <see cref="Input.touchCount"/> for macOS trackpads and touchscreens.
+    /// </remarks>
     private void HandleZoom()
     {
         if (_cam == null) return;
-        float scroll = Input.GetAxis("Mouse ScrollWheel");
-        if (scroll != 0)
-        {
-            // Adjust zoom while keeping it within allowed range
-            _cam.orthographicSize = Mathf.Clamp(_cam.orthographicSize - (scroll * zoomSpeed), minSize, maxSize);
 
-            // Re-apply boundaries so zooming cannot expose out-of-bounds areas
-            ApplyBoundaries();
+        // Two-finger pinch: macOS trackpads report touches; scroll axis is often zero.
+        if (Input.touchCount == 2)
+        {
+            Touch t0 = Input.GetTouch(0);
+            Touch t1 = Input.GetTouch(1);
+            Vector2 p0Prev = t0.position - t0.deltaPosition;
+            Vector2 p1Prev = t1.position - t1.deltaPosition;
+            float prevMag = (p0Prev - p1Prev).magnitude;
+            float currMag = (t0.position - t1.position).magnitude;
+            float pinchDelta = prevMag - currMag; // > 0 when fingers move together (zoom in)
+            if (Mathf.Abs(pinchDelta) > 0.25f)
+                ApplyZoomChange(pinchDelta * pinchZoomSensitivity);
+            return;
         }
+
+        // Mouse wheel and trackpads that map zoom to scroll deltas.
+        float scrollFromDelta = Input.mouseScrollDelta.y * mouseScrollDeltaScale;
+        float scrollAxis = Input.GetAxis("Mouse ScrollWheel");
+        float scroll = Mathf.Abs(scrollFromDelta) > 1e-5f ? scrollFromDelta : scrollAxis;
+        if (Mathf.Abs(scroll) > 1e-5f)
+            ApplyZoomChange(scroll * zoomSpeed);
+    }
+
+    /// <summary>
+    /// Positive values zoom in (decrease orthographic size), matching scroll-wheel "up" convention.
+    /// </summary>
+    private void ApplyZoomChange(float amount)
+    {
+        _cam.orthographicSize = Mathf.Clamp(_cam.orthographicSize - amount, minSize, maxSize);
+        ApplyBoundaries();
     }
 }
