@@ -1270,7 +1270,7 @@ MonoBehaviour:
   m_Intensity: 1
   m_LightVolumeIntensity: 1
   m_LightVolumeEnabled: 0
-  m_ApplyToSortingLayers: 00000000a750e4492ff667bd
+  m_ApplyToSortingLayers: 00000000
   m_LightCookieSprite: {fileID: 0}
   m_DeprecatedPointLightCookieSprite: {fileID: 0}
   m_LightOrder: 0
@@ -1377,11 +1377,6 @@ MonoBehaviour:
   winterPalette:
     landColor: {r: 1, g: 1, b: 1, a: 1}
     waterColor: {r: 0.7, g: 0.9, b: 1, a: 1}
-  backgroundDisplay: {fileID: 611913182}
-  springBackground: {fileID: 8139369197697958937, guid: f1c10592df8c585499890ffb2ee0a159, type: 3}
-  summerBackground: {fileID: 3247701453213657277, guid: 3998d5b354715c44e8c10ec7d3f3d03f, type: 3}
-  autumnBackground: {fileID: -7292140915009242488, guid: 02c41402c40d27a4bab5f616b31acd5b, type: 3}
-  winterBackground: {fileID: 3051917745603365905, guid: 7064caa634b8ab74a84d6aaa34cdad30, type: 3}
 --- !u!1 &670591979
 GameObject:
   m_ObjectHideFlags: 0
@@ -1930,9 +1925,9 @@ TilemapRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: -1117260241
-  m_SortingLayer: 1
-  m_SortingOrder: -10
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
   m_MaskInteraction: 0
   m_ChunkSize: {x: 32, y: 32, z: 32}
   m_ChunkCullingBounds: {x: 0, y: 0, z: 0}
