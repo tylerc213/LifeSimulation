@@ -110,20 +110,13 @@ public class TraitIconDisplay : MonoBehaviour
         GrazerGenetics gg = GetComponent<GrazerGenetics>();
         if (gg != null && gg.Genome != null)
         {
-            // Herd Leader replaces all other grazer icons
-            if (gg.IsHerdLeader)
-            {
-                AddIfNotNull(list, iconHerdLeader);
-            }
-            else
-            {
-                if (gg.Genome.IsExpressed(TraitType.GrazerNimble))       AddIfNotNull(list, iconGrazerNimble);
-                if (gg.Genome.IsExpressed(TraitType.GrazerStrong))       AddIfNotNull(list, iconGrazerStrong);
-                if (gg.Genome.IsExpressed(TraitType.GrazerThickSkinned)) AddIfNotNull(list, iconGrazerThickSkinned);
-                if (gg.Genome.IsExpressed(TraitType.Camouflage))         AddIfNotNull(list, iconCamouflage);
-                if (gg.Genome.IsExpressed(TraitType.Spiky))              AddIfNotNull(list, iconSpiky);
-                if (gg.Genome.IsExpressed(TraitType.HerdMentality))      AddIfNotNull(list, iconHerdMentality);
-            }
+            if (gg.Genome.IsExpressed(TraitType.GrazerNimble))       AddIfNotNull(list, iconGrazerNimble);
+            if (gg.Genome.IsExpressed(TraitType.GrazerStrong))       AddIfNotNull(list, iconGrazerStrong);
+            if (gg.Genome.IsExpressed(TraitType.GrazerThickSkinned)) AddIfNotNull(list, iconGrazerThickSkinned);
+            if (gg.Genome.IsExpressed(TraitType.Camouflage))         AddIfNotNull(list, iconCamouflage);
+            if (gg.Genome.IsExpressed(TraitType.Spiky))              AddIfNotNull(list, iconSpiky);
+            if (gg.Genome.IsExpressed(TraitType.HerdMentality))      AddIfNotNull(list, iconHerdMentality);
+  
             return list;
         }
 
