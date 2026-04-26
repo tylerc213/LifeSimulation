@@ -3,28 +3,39 @@
 // Item:        Simulation GUI
 // Requirement: Sim Editor
 // Author:      Robert Amborski
-// Date:        3/25/2026
-// Version:     0.0.1
+// Date:        03/25/2026
 //
 // Description:
-//    Generates a square tilemap using preset map sizes, perlin noice for detail, and randomly placed obstacles.
-//    After map generation, spawns initial obstacles, plants, grazers, and predators.
+//    Procedurally generates the simulation world using tilemaps, Perlin noise,
+//    and obstacle clustering. Initializes environmental layout and spawns the
+//    starting populations of plants, grazers, and predators.
 // -----------------------------------------------------------------------------
+
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
-/// <summary> Handles procedural tile placement and initial entity spawning </summary>
+/// <summary>
+/// Handles terrain generation and initial ecosystem setup.
+/// </summary>
+/// <remarks>
+/// Acts as the entry point for each simulation run. Responsible for resetting
+/// previous state, generating terrain, and spawning initial life forms.
+/// </remarks>
 public class MapGenerator2D : MonoBehaviour
 {
     public static MapGenerator2D Instance { get; private set; }
 
-    /// <summary> True after the first successful <see cref="GenerateMap"/> in this session (tiles + obstacles ready). </summary>
+    /// <summary>
+    /// Indicates whether a valid simulation run is currently active.
+    /// </summary>
     public static bool IsSimulationRunActive =>
         Instance != null && Instance.IsMapReady && Instance.HasSimulationStarted;
 
-    /// <summary> Fired when <see cref="GenerateMap"/> completes (tiles + obstacles). Logging should start here, not on scene load. </summary>
+    /// <summary>
+    /// Fired after map generation completes (terrain + obstacles ready).
+    /// </summary>
     public static event Action OnMapGenerated;
 
     [Header("Tilemap References")]
@@ -32,17 +43,20 @@ public class MapGenerator2D : MonoBehaviour
     public TileBase baseSquareTile;
 
     [Header("Obstacle Generation")]
+    [Tooltip("Prefab used for obstacle placement.")]
     public GameObject obstaclePrefab;
-    [Tooltip("Probability per tile of attempting a rock cluster. Keep low on large maps.")]
+
+    [Tooltip("Chance per tile to attempt spawning an obstacle cluster.")]
     [Range(0.0005f, 0.015f)]
     public float rockSpawnChance = 0.004f;
+
     public int obstacleMinCluster = 1;
     public int obstacleMaxCluster = 2;
 
-    [Header("Terrain coloring (Perlin — water vs land)")]
-    [Tooltip("Feature size for Perlin noise.")]
+    [Header("Terrain Coloring (Perlin Noise)")]
     public float perlinScale = 0.1f;
-    [Tooltip("0 = least water, 1 = most water (blue tiles).")]
+
+    [Tooltip("Controls ratio of water vs land tiles.")]
     [Range(0f, 1f)]
     public float waterSpawnRate = 0.35f;
 
@@ -54,20 +68,21 @@ public class MapGenerator2D : MonoBehaviour
     private float _currentOffsetX;
     private float _currentOffsetY;
 
-    // Stores world-space centers of all non-obstacle tiles so we can pick
-    // random valid spawn positions without landing inside an obstacle.
+    // Stores valid spawn positions (non-obstacle tiles)
     private List<Vector3> _openTiles = new List<Vector3>();
 
-    /// <summary> True only after <see cref="GenerateMap"/> has finished (tiles + obstacles). Used to block editor spawns before the first generate.</summary>
+    /// <summary> True when terrain and obstacles are fully generated </summary>
     public bool IsMapReady { get; private set; }
-    /// <summary> True once the user has generated at least one map in this scene session.</summary>
+
+    /// <summary> True once at least one simulation run has started </summary>
     public bool HasSimulationStarted { get; private set; }
 
     private void Awake()
     {
+        // Enforce singleton pattern to prevent conflicting generators
         if (Instance != null && Instance != this)
         {
-            Debug.LogWarning("MapGenerator2D: Multiple instances — destroying duplicate.");
+            Debug.LogWarning("MapGenerator2D: Duplicate instance detected — destroying.");
             Destroy(gameObject);
             return;
         }
@@ -81,19 +96,25 @@ public class MapGenerator2D : MonoBehaviour
             Instance = null;
     }
 
-    /// <summary> Executes map generation logic then spawns initial entities </summary>
+    /// <summary>
+    /// Generates terrain, obstacles, and initializes simulation entities.
+    /// </summary>
     public void GenerateMap()
     {
+        // Reset simulation state flags
         IsMapReady = false;
         HasSimulationStarted = false;
 
         SimulationManager sim = SimulationManager.Instance;
+
+        // Prevent population systems from reacting during reset
         sim?.ResetPopulationState();
         sim?.SetSuppressPopulationSync(true);
 
-        // Determine dimensions from central spectator settings
+        // Determine map size based on camera preset
         int sizeDim = 300;
         var camHandler = FindFirstObjectByType<CameraHandler>();
+
         if (camHandler != null)
         {
             switch (camHandler.selectedSize)
@@ -104,11 +125,11 @@ public class MapGenerator2D : MonoBehaviour
             }
         }
 
-        // Wipe existing data to prepare for new generation
+        // Clear previous terrain and cached spawn positions
         squareTilemap.ClearAllTiles();
         _openTiles.Clear();
 
-        // Destroy any entities left over from a previous generation
+        // Remove leftover entities from prior simulation runs
         DestroyTagged("Plant");
         DestroyTagged("Grazer");
         DestroyTagged("Predator");
@@ -116,83 +137,84 @@ public class MapGenerator2D : MonoBehaviour
 
         sim?.SetSuppressPopulationSync(false);
 
-        // Initialize unique seed for sim run
+        // Seed randomness for unique terrain generation
         UnityEngine.Random.InitState((int)DateTime.Now.Ticks);
         _currentOffsetX = UnityEngine.Random.Range(0f, 99999f);
         _currentOffsetY = UnityEngine.Random.Range(0f, 99999f);
 
-        // calculate offset for centering
         int halfDim = sizeDim / 2;
         Vector3Int startPos = new Vector3Int(-halfDim, -halfDim, 0);
         Vector3Int size = new Vector3Int(sizeDim, sizeDim, 1);
 
-        // Batch set tiles to avoid CPU overhead
+        // Batch tile assignment for performance
         BoundsInt bounds = new BoundsInt(startPos, size);
         TileBase[] tileArray = new TileBase[sizeDim * sizeDim];
 
-        for (int i = 0; i < tileArray.Length; i++) tileArray[i] = baseSquareTile;
+        for (int i = 0; i < tileArray.Length; i++)
+            tileArray[i] = baseSquareTile;
+
         squareTilemap.SetTilesBlock(bounds, tileArray);
 
-        // ── Tile placement ────────────────────────────────────────────────────
-        // Fetch current seasonal palette from EnvironmentHandler
+        // Fetch seasonal palette for terrain coloring
         var palette = EnvironmentHandler.Instance != null
             ? EnvironmentHandler.Instance.GetCurrentPalette()
             : new SeasonalPalette(Color.tan, new Color(0.1f, 0.2f, 0.5f));
 
+        // Generate terrain using Perlin noise
         for (int x = -halfDim; x < halfDim; x++)
         {
             for (int y = -halfDim; y < halfDim; y++)
             {
                 Vector3Int tilePos = new Vector3Int(x, y, 0);
-                squareTilemap.SetTile(tilePos, baseSquareTile);
 
-                float perlin = Mathf.PerlinNoise((x + halfDim) * perlinScale + _currentOffsetX, (y + halfDim) * perlinScale + _currentOffsetY);
+                float perlin = Mathf.PerlinNoise(
+                    (x + halfDim) * perlinScale + _currentOffsetX,
+                    (y + halfDim) * perlinScale + _currentOffsetY
+                );
 
-                // Use the Palette colors based on perlin noise (water vs land)
-                Color tileColor = (perlin > waterSpawnRate) ? palette.waterColor : palette.landColor;
+                // Use noise threshold to classify terrain type
+                Color tileColor = (perlin > waterSpawnRate)
+                    ? palette.waterColor
+                    : palette.landColor;
 
                 squareTilemap.SetTileFlags(tilePos, TileFlags.None);
                 squareTilemap.SetColor(tilePos, tileColor);
 
+                // Cache valid spawn location
                 Vector3 worldCenter = squareTilemap.GetCellCenterWorld(tilePos);
                 _openTiles.Add(worldCenter);
             }
         }
 
-        // ── Notify BoundaryManager of the true map extents ────────────────────
-        // This must happen before obstacle/entity spawning so RandomPosition()
-        // and Clamp() use the full map area, not just the camera viewport.
+        // Sync world bounds for movement and spawning systems
         if (BoundaryManager.Instance != null)
             BoundaryManager.Instance.SetMapBounds(squareTilemap);
 
         if (camHandler != null)
             camHandler.UpdateTiers();
 
-        // ── Obstacle generation ───────────────────────────────────────────────
+        // Generate obstacles after terrain is established
         if (obstaclePrefab != null)
             SpawnObstacles();
 
         IsMapReady = true;
         HasSimulationStarted = true;
 
-        // This notifies SimulationLogger and LogManager to start their work.
+        // Notify systems that simulation world is ready
         OnMapGenerated?.Invoke();
 
-        // ── Initial entity spawning ───────────────────────────────────────────
-        // Use Invoke so EcosystemManager and BoundaryManager have had a frame
-        // to initialise before we ask them to spawn anything.
+        // Delay entity spawning to ensure all systems are initialized
         Invoke(nameof(SpawnInitialEntities), 0.1f);
     }
 
-    // ── Obstacle Spawning ─────────────────────────────────────────────────────
-
+    /// <summary>
+    /// Spawns clustered obstacles across the terrain.
+    /// </summary>
     private void SpawnObstacles()
     {
-        // Work on a shuffled copy so clusters land in random positions
         List<Vector3> shuffled = new List<Vector3>(_openTiles);
         Shuffle(shuffled);
 
-        // Keep a set of occupied positions so clusters don't double-place
         HashSet<Vector3> occupied = new HashSet<Vector3>();
 
         foreach (Vector3 tileCenter in shuffled)
@@ -204,17 +226,19 @@ public class MapGenerator2D : MonoBehaviour
             PlaceObstacleCluster(tileCenter, clusterSize, occupied);
         }
 
-        // Remove obstacle positions from _openTiles so entities don't spawn there
+        // Remove occupied tiles to prevent spawning entities inside obstacles
         _openTiles.RemoveAll(t => occupied.Contains(t));
     }
 
+    /// <summary>
+    /// Places a cluster of obstacles around a starting tile.
+    /// </summary>
     private void PlaceObstacleCluster(Vector3 origin, int count, HashSet<Vector3> occupied)
     {
-        // Cardinal neighbour offsets in tile space
         Vector3Int[] dirs = {
             Vector3Int.zero,
             Vector3Int.right, Vector3Int.left,
-            Vector3Int.up,    Vector3Int.down
+            Vector3Int.up, Vector3Int.down
         };
 
         Vector3Int originCell = squareTilemap.WorldToCell(origin);
@@ -236,40 +260,52 @@ public class MapGenerator2D : MonoBehaviour
         }
     }
 
-    // ── Initial Entity Spawning ───────────────────────────────────────────────
-
+    /// <summary>
+    /// Spawns initial ecosystem populations.
+    /// </summary>
     private void SpawnInitialEntities()
     {
         if (EcosystemManager.Instance == null)
         {
-            UnityEngine.Debug.LogWarning("MapGenerator2D: EcosystemManager not found — skipping entity spawn.");
+            Debug.LogWarning("MapGenerator2D: EcosystemManager missing — skipping spawn.");
             return;
         }
 
-        for (int i = 0; i < startPlants; i++) EcosystemManager.Instance.ManualSpawnPlant(RandomOpenTile());
-        for (int i = 0; i < startGrazers; i++) EcosystemManager.Instance.ManualSpawnGrazer(RandomOpenTile());
-        for (int i = 0; i < startPredators; i++) EcosystemManager.Instance.ManualSpawnPredator(RandomOpenTile());
+        for (int i = 0; i < startPlants; i++)
+            EcosystemManager.Instance.ManualSpawnPlant(RandomOpenTile());
+
+        for (int i = 0; i < startGrazers; i++)
+            EcosystemManager.Instance.ManualSpawnGrazer(RandomOpenTile());
+
+        for (int i = 0; i < startPredators; i++)
+            EcosystemManager.Instance.ManualSpawnPredator(RandomOpenTile());
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
+    /// <summary>
+    /// Returns a valid random spawn position.
+    /// </summary>
     private Vector2 RandomOpenTile()
     {
         if (_openTiles.Count > 0)
             return _openTiles[UnityEngine.Random.Range(0, _openTiles.Count)];
 
-        // Fallback: let BoundaryManager pick a position if tile list is empty
         return BoundaryManager.Instance != null
             ? BoundaryManager.Instance.RandomPosition()
             : Vector2.zero;
     }
 
+    /// <summary>
+    /// Destroys all GameObjects with a given tag.
+    /// </summary>
     private static void DestroyTagged(string tag)
     {
         foreach (GameObject go in GameObject.FindGameObjectsWithTag(tag))
             Destroy(go);
     }
 
+    /// <summary>
+    /// Randomizes list order for distribution fairness.
+    /// </summary>
     private static void Shuffle<T>(List<T> list)
     {
         for (int i = list.Count - 1; i > 0; i--)
@@ -279,7 +315,9 @@ public class MapGenerator2D : MonoBehaviour
         }
     }
 
-    /// <summary> Updates the colors of existing tiles to match the current season </summary>
+    /// <summary>
+    /// Recolors terrain tiles based on current season.
+    /// </summary>
     public void RefreshTileColors()
     {
         if (squareTilemap == null) return;
@@ -288,28 +326,23 @@ public class MapGenerator2D : MonoBehaviour
             ? EnvironmentHandler.Instance.GetCurrentPalette()
             : new SeasonalPalette(Color.tan, new Color(0.1f, 0.2f, 0.5f));
 
-        // We need to fetch the original offsets used during GenerateMap
-        // Since they aren't stored as variables, we have to ensure they are accessible.
-        // For now, let's assume you're using the same perlinScale.
-
         int halfDim = squareTilemap.cellBounds.size.x / 2;
 
         foreach (var pos in squareTilemap.cellBounds.allPositionsWithin)
         {
-            if (squareTilemap.HasTile(pos))
-            {
-                // IMPORTANT: We use the same math from GenerateMap to determine tile type
-                // Note: If you want this to be 100% perfect, you should store the 
-                // offsetX and offsetY as class variables in MapGenerator2D.
-                float perlin = Mathf.PerlinNoise((pos.x + halfDim) * perlinScale + _currentOffsetX, (pos.y + halfDim) * perlinScale + _currentOffsetY);
+            if (!squareTilemap.HasTile(pos)) continue;
 
-                bool isWater = perlin > 0.65f;
+            float perlin = Mathf.PerlinNoise(
+                (pos.x + halfDim) * perlinScale + _currentOffsetX,
+                (pos.y + halfDim) * perlinScale + _currentOffsetY
+            );
 
-                Color newColor = isWater ? palette.waterColor : palette.landColor;
+            bool isWater = perlin > waterSpawnRate;
 
-                squareTilemap.SetTileFlags(pos, TileFlags.None);
-                squareTilemap.SetColor(pos, newColor);
-            }
+            Color newColor = isWater ? palette.waterColor : palette.landColor;
+
+            squareTilemap.SetTileFlags(pos, TileFlags.None);
+            squareTilemap.SetColor(pos, newColor);
         }
     }
 }

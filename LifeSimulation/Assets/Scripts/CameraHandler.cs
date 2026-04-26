@@ -4,19 +4,27 @@
 // Requirement:	Camera Mode
 // Author:		Robert Amborski
 // Date:		04/17/2026
-// Version:		0.0.1
 //
 // Description:
-//    Handles physics-based spectator movement, orthographic zooming, and 
-//    dynamic boundary clamping based on selected map tiers.
+//    Controls player camera movement, zoom behavior, and ensures the camera
+//    view remains constrained within the simulation map boundaries based on
+//    selected map size.
 // -----------------------------------------------------------------------------
 
 using UnityEngine;
 
-/// <summary> Manages user camera </summary>
+/// <summary>
+/// Handles camera movement, zoom, and boundary constraints.
+/// </summary>
+/// <remarks>
+/// Uses Rigidbody2D for smooth physics-based movement and clamps the camera
+/// view so the player cannot see outside the simulation area.
+/// </remarks>
 public class CameraHandler : MonoBehaviour
 {
-    // Define map tiers of simulation
+    /// <summary>
+    /// Defines available simulation map sizes.
+    /// </summary>
     public enum MapSize { Small, Medium, Large }
 
     [Header("Simulation Settings")]
@@ -36,20 +44,28 @@ public class CameraHandler : MonoBehaviour
     private Camera _cam;
     private Vector2 _input;
 
-    /// <summary> Initializes components </summary>
+    /// <summary>
+    /// Initializes camera references and applies map size constraints.
+    /// </summary>
     void Start()
     {
+        // Cache required components for performance and reuse
         _rb = GetComponent<Rigidbody2D>();
         _cam = GetComponentInChildren<Camera>();
+
+        // Prevent unwanted rotation from physics interactions
         _rb.freezeRotation = true;
 
+        // Initialize map boundaries based on selected size
         UpdateTiers();
     }
 
-    /// <summary> Re-applies tier half-size and max zoom from <see cref="selectedSize"/> (e.g. when the preset changes in the UI). </summary>
+    /// <summary>
+    /// Updates map boundary limits and zoom constraints based on selected size.
+    /// </summary>
     public void UpdateTiers()
     {
-        // Set the boundary based on the selection
+        // Set half-map size to define movement boundaries
         switch (selectedSize)
         {
             case MapSize.Small: _halfMap = 25f; break;
@@ -57,57 +73,68 @@ public class CameraHandler : MonoBehaviour
             case MapSize.Large: _halfMap = 150f; break;
         }
 
-        // Lock maxSize to the half-height so they can't zoom out past the map
+        // Prevent zooming out beyond the visible map area
         maxSize = _halfMap;
     }
 
-    /// <summary> Captures user input </summary>
+    /// <summary>
+    /// Captures player movement input and processes zoom input.
+    /// </summary>
     void Update()
     {
+        // Read raw input to avoid smoothing (gives responsive camera control)
         _input.x = Input.GetAxisRaw("Horizontal");
         _input.y = Input.GetAxisRaw("Vertical");
         HandleZoom();
     }
 
-    /// <summary> Applies physics and movement area constraints </summary>
+    /// <summary>
+    /// Applies smooth physics-based movement and enforces boundaries.
+    /// </summary>
     void FixedUpdate()
     {
-        // Apply smooth physics movement
+        // Smoothly interpolate velocity toward target movement direction
         Vector2 targetVelocity = _input.normalized * moveSpeed;
         _rb.linearVelocity = Vector2.Lerp(_rb.linearVelocity, targetVelocity, acceleration * Time.fixedDeltaTime);
 
         ApplyBoundaries();
     }
 
-    /// <summary> Confines the camera frustum within the map boundaries </summary>
+    /// <summary>
+    /// Restricts camera position so its visible area stays within the map.
+    /// </summary>
     private void ApplyBoundaries()
     {
         if (_cam == null) return;
 
-        // Calculate current visible half-size
+        // Calculate half-height and width of the visible camera area
         float camHalfHeight = _cam.orthographicSize;
         float camHalfWidth = camHalfHeight * _cam.aspect;
 
-        // How far the rig can move before the view rect hits the (loosened) pan box
+        // Determine max movement range so camera edges do not leave the map
         float limitX = Mathf.Max(0, _halfMap - camHalfWidth);
         float limitY = Mathf.Max(0, _halfMap - camHalfHeight);
 
+        // Clamp position within calculated limits
         float clampedX = Mathf.Clamp(transform.position.x, -limitX, limitX);
         float clampedY = Mathf.Clamp(transform.position.y, -limitY, limitY);
 
         transform.position = new Vector3(clampedX, clampedY, transform.position.z);
     }
 
-    /// <summary> Adjusts orthographic size and forces boundary re-check </summary>
+    /// <summary>
+    /// Handles camera zoom input and enforces zoom limits.
+    /// </summary>
     private void HandleZoom()
     {
         if (_cam == null) return;
         float scroll = Input.GetAxis("Mouse ScrollWheel");
         if (scroll != 0)
         {
+            // Adjust zoom while keeping it within allowed range
             _cam.orthographicSize = Mathf.Clamp(_cam.orthographicSize - (scroll * zoomSpeed), minSize, maxSize);
 
-            // Re-apply boundaries immediately so the zoom "pushes" the camera back in
+            // Re-apply boundaries so zooming cannot expose out-of-bounds areas
             ApplyBoundaries();
         }
     }

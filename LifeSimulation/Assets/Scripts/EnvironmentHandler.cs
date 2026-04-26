@@ -4,27 +4,39 @@
 // Requirement:	Environmental Variation, Seasonal Growth, Lighting
 // Author:		Robert Amborski
 // Date:		04/17/2026
-// Version:		0.0.1
 //
 // Description:
-//    Manages the global simulation clock, seasonal cycles, and lighting.
-//    Provides sunlight intensity data to the Ecosystem for plant growth logic.
+//    Controls simulation time, seasonal transitions, and environmental lighting.
+//    Provides global environmental data (sunlight, seasons, palettes) used by
+//    organisms and world systems to drive behavior and growth.
 // -----------------------------------------------------------------------------
 
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 
-/// <summary> Manages global environmental states including time and seasons </summary>
+/// <summary>
+/// Central controller for simulation time, seasons, and environmental effects.
+/// </summary>
+/// <remarks>
+/// Acts as a global singleton so all systems (plants, creatures, map) can
+/// access consistent environmental data.
+/// </remarks>
 [DefaultExecutionOrder(-50)]
 public class EnvironmentHandler : MonoBehaviour
 {
+    /// <summary> Global instance for shared environment access </summary>
     public static EnvironmentHandler Instance { get; private set; }
 
+    /// <summary> Defines seasonal cycle states </summary>
     public enum Season { Spring, Summer, Autumn, Winter }
 
     [Header("Time Settings")]
     public float dayLengthInSeconds = 60f;
+
+    /// <summary> Current time of day (0–1 normalized cycle) </summary>
     [Range(0, 1)] public float timeOfDay;
+
+    /// <summary> Total completed days since simulation start </summary>
     public int totalDaysPassed { get; private set; }
 
     [Header("Seasonal Settings")]
@@ -34,6 +46,8 @@ public class EnvironmentHandler : MonoBehaviour
     [Header("Lighting References")]
     public Light2D globalLight;
     public Gradient dayNightGradient;
+
+    /// <summary> Color tint applied during winter for colder visual tone </summary>
     public Color winterTint = new Color(0.8f, 0.9f, 1.0f); // Slight blue tint for winter
 
     [Header("Seasonal Visual Palettes")]
@@ -43,7 +57,7 @@ public class EnvironmentHandler : MonoBehaviour
     public SeasonalPalette winterPalette = new SeasonalPalette(Color.white, new Color(0.7f, 0.9f, 1.0f));
 
     [Header("Background Art References")]
-    [Tooltip("The UI Image component fanned out behind the map.")]
+    /// <summary> Renderer used for background visuals behind simulation </summary>
     public SpriteRenderer backgroundRenderer;
 
     [Tooltip("The 8-bit AI art sprites for each season.")]
@@ -52,8 +66,13 @@ public class EnvironmentHandler : MonoBehaviour
     public Sprite autumnBackground;
     public Sprite winterBackground;
 
+    // Prevents simulation from running before map is generated
     bool simulationStarted = false;
 
+    /// <summary>
+    /// Gets the active palette for the current season.
+    /// </summary>
+    /// <returns>Seasonal color palette</returns>
     public SeasonalPalette GetCurrentPalette()
     {
         return currentSeason switch
@@ -65,16 +84,23 @@ public class EnvironmentHandler : MonoBehaviour
         };
     }
 
-    /// <summary> 0.0 to 1.0 representing current sun strength (0 at night) </summary>
+    /// <summary> Current sunlight strength (0 = night, 1 = peak daylight) </summary>
     public float SunlightIntensity { get; private set; }
 
+    /// <summary> Visibility scaling factor based on light level </summary>
     public float VisibilityMultiplier => Mathf.Lerp(0.2f, 1.0f, SunlightIntensity);
 
     private void Awake()
     {
-        timeOfDay = 0.5f; // Noon
+        // Initialize to midday so simulation starts visible and active
+        timeOfDay = 0.5f;
+
         UpdateLighting();
+
+        // Assign singleton instance
         Instance = this;
+
+        // Create fallback gradient if none provided
         if (dayNightGradient == null)
         {
             dayNightGradient = new Gradient();
@@ -97,18 +123,20 @@ public class EnvironmentHandler : MonoBehaviour
 
     private void OnDestroy()
     {
+        // Ensure singleton reference is cleared correctly
         if (Instance == this)
             Instance = null;
     }
 
     void Update()
     {
+        // Prevent environment updates before simulation initialization
         if (!simulationStarted) return;
 
         UpdateClock();
         UpdateLighting();
 
-        // DEBUG: Press 'N' to skip to the next season
+        // Debug shortcut to force seasonal transitions
         if (Input.GetKeyDown(KeyCode.N))
         {
             totalDaysPassed += (int)seasonLengthInDays;
@@ -117,11 +145,15 @@ public class EnvironmentHandler : MonoBehaviour
         }
     }
 
-    /// <summary> Increments time and handles day/season rollovers </summary>
+    /// <summary>
+    /// Advances time and calculates sunlight intensity.
+    /// </summary>
     private void UpdateClock()
     {
+        // Advance normalized day cycle
         timeOfDay += Time.deltaTime / dayLengthInSeconds;
 
+        // Handle day rollover
         if (timeOfDay >= 1)
         {
             timeOfDay = 0;
@@ -129,19 +161,21 @@ public class EnvironmentHandler : MonoBehaviour
             CheckSeasonChange();
         }
 
-        // Sunlight follows a bell curve: Max at 0.5 (Noon), 0 at 0 (Midnight)
-        // Using Mathf.Max to ensure intensity stays at 0 during "Night" hours
+        // Simulates sun arc using sine wave (dark at night, bright at noon)
         SunlightIntensity = Mathf.Max(0, Mathf.Sin(timeOfDay * Mathf.PI * 2 - Mathf.PI / 2));
     }
 
-    /// <summary> Transitions seasons based on day count </summary>
+    /// <summary>
+    /// Updates season based on elapsed days.
+    /// </summary>
     private void CheckSeasonChange()
     {
         Season previousSeason = currentSeason;
+
         int seasonIndex = (int)(totalDaysPassed / seasonLengthInDays) % 4;
         currentSeason = (Season)seasonIndex;
 
-        // If the season actually changed, tell the MapGenerator to repaint
+        // Only update visuals if season actually changed
         if (currentSeason != previousSeason)
         {
             if (MapGenerator2D.Instance != null)
@@ -153,76 +187,84 @@ public class EnvironmentHandler : MonoBehaviour
         }
     }
 
-    /// <summary> Updates global light color and intensity </summary>
+    /// <summary>
+    /// Updates global lighting color and intensity.
+    /// </summary>
     private void UpdateLighting()
     {
         if (globalLight == null) return;
 
+        // Base color from time of day gradient
         Color baseColor = dayNightGradient.Evaluate(timeOfDay);
 
-        // Dynamic seasonal lighting tints
+        // Apply seasonal tint for visual variation
         Color seasonalTint = currentSeason switch
         {
-            Season.Spring => new Color(0.9f, 1.0f, 0.9f), // Fresh/Bright
-            Season.Summer => new Color(1.0f, 1.0f, 0.8f), // Warm/Golden
-            Season.Autumn => new Color(1.0f, 0.85f, 0.7f), // Sepia/Orange
-            Season.Winter => winterTint,                   // Original blue tint
+            Season.Spring => new Color(0.9f, 1.0f, 0.9f),
+            Season.Summer => new Color(1.0f, 1.0f, 0.8f),
+            Season.Autumn => new Color(1.0f, 0.85f, 0.7f),
+            Season.Winter => winterTint,
             _ => Color.white
         };
 
         globalLight.color = baseColor * seasonalTint;
 
+        // Adjust brightness based on sunlight + seasonal growth conditions
         float seasonMultiplier = GetSeasonalGrowthMultiplier();
         globalLight.intensity = Mathf.Lerp(0.2f, 1.2f, SunlightIntensity * seasonMultiplier);
     }
 
-    /// <summary> 
-    /// Returns a growth coefficient based on the season. 
-    /// Used by Plants to calculate energy production.
+    /// <summary>
+    /// Provides plant growth modifier based on season.
     /// </summary>
+    /// <returns>Growth multiplier</returns>
     public float GetSeasonalGrowthMultiplier()
     {
         return currentSeason switch
         {
             Season.Spring => 1.0f,
-            Season.Summer => 1.5f, // Peak growth
-            Season.Autumn => 0.7f, // Dying off
-            Season.Winter => 0.2f, // Dormancy
+            Season.Summer => 1.5f,
+            Season.Autumn => 0.7f,
+            Season.Winter => 0.2f,
             _ => 1.0f
         };
     }
 
+    /// <summary>
+    /// Updates seasonal background visuals.
+    /// </summary>
     private void UpdateBackgroundArt()
     {
-        // Safety check in case you forgot to drag the Image component in
         if (backgroundRenderer == null) return;
 
-        // Pick the sprite based on the current season
         Sprite targetSprite = currentSeason switch
         {
             Season.Spring => springBackground,
             Season.Autumn => autumnBackground,
             Season.Winter => winterBackground,
-            _ => summerBackground // Summer is the default
+            _ => summerBackground
         };
 
-        // Swap the sprite on the UI component
+        // Swap sprite only when needed to avoid unnecessary updates
         if (targetSprite != null && backgroundRenderer.sprite != targetSprite)
         {
             backgroundRenderer.sprite = targetSprite;
 
-            // Optional: Trigger a simple fade-in effect
             StopAllCoroutines();
             StartCoroutine(FadeBackground(0.5f));
         }
     }
 
+    /// <summary>
+    /// Smoothly fades in background after seasonal change.
+    /// </summary>
+    /// <param name="duration">Fade duration in seconds</param>
     private System.Collections.IEnumerator FadeBackground(float duration)
     {
         float elapsed = 0;
         Color c = backgroundRenderer.color;
 
-        // Start transparent and fade in
+        // Gradually increase alpha for fade-in effect
         while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
@@ -232,35 +274,46 @@ public class EnvironmentHandler : MonoBehaviour
         }
     }
 
-    /// <summary> Returns a speed multiplier for Cold-Blooded (Reptile) creatures </summary>
+    /// <summary>
+    /// Provides movement modifier for cold-blooded creatures.
+    /// </summary>
+    /// <returns>Speed multiplier</returns>
     public float GetReptileSpeedMultiplier()
     {
         return currentSeason switch
         {
-            Season.Summer => 1.3f, // Fast in heat
-            Season.Spring => 1.0f, // Normal
-            Season.Autumn => 0.7f, // Slowing down
-            Season.Winter => 0.4f, // Lethargic/Hibernation mode
+            Season.Summer => 1.3f,
+            Season.Spring => 1.0f,
+            Season.Autumn => 0.7f,
+            Season.Winter => 0.4f,
             _ => 1.0f
         };
     }
 
     void OnEnable()
     {
+        // Subscribe to map generation event to start simulation
         MapGenerator2D.OnMapGenerated += HandleSimulationStarted;
     }
 
     void OnDisable()
     {
+        // Unsubscribe to prevent dangling references
         MapGenerator2D.OnMapGenerated -= HandleSimulationStarted;
     }
 
+    /// <summary>
+    /// Enables simulation updates once map is ready.
+    /// </summary>
     void HandleSimulationStarted()
     {
         simulationStarted = true;
     }
 }
 
+/// <summary>
+/// Defines terrain and water colors for a season.
+/// </summary>
 [System.Serializable]
 public struct SeasonalPalette
 {

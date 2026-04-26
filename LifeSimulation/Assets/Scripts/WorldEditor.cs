@@ -4,10 +4,10 @@
 // Requirement:	Sim Editor
 // Author:		Robert Amborski
 // Date:		3/25/2026
-// Version:		0.0.0
 //
 // Description:
-//    Allows user to place lifeform placeholders onto map
+//    Allows user to place entities onto the simulation map using mouse input.
+//    Validates simulation state and tile positions before spawning.
 // -----------------------------------------------------------------------------
 
 using UnityEngine;
@@ -18,7 +18,12 @@ using UnityEngine.Tilemaps;
 using LegacyInput = UnityEngine.Input;
 #endif
 
-/// <summary> Executes mouse-driven object placement logic </summary>
+/// <summary>
+/// Handles mouse-based entity placement on the map.
+/// </summary>
+/// <remarks>
+/// Only allows placement after the simulation has started and on valid tiles.
+/// </remarks>
 public class WorldEditor : MonoBehaviour
 {
     [Header("Dependancies")]
@@ -32,16 +37,21 @@ public class WorldEditor : MonoBehaviour
     public GameObject plantPrefab;
     public GameObject obstaclePrefab;
 
-    // Stores selected placement mode (set by UI buttons; spawn only on map click)
+    // Stores current selection mode (0 = none)
     private int selection = 0;
 
+    /// <summary>
+    /// Initializes references and ensures simulation bootstrap exists.
+    /// </summary>
     void Awake()
     {
+        // Auto-assign generator if not set
         if (mapGenerator == null)
         {
             mapGenerator = GetComponent<MapGenerator2D>();
         }
 
+        // Ensure simulation bootstrap exists for proper scene initialization
         if (FindFirstObjectByType<SimulationSceneBootstrap>() == null)
         {
             GameObject boot = new GameObject("SimulationSceneBootstrap");
@@ -49,6 +59,10 @@ public class WorldEditor : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Validates whether spawning is currently allowed.
+    /// </summary>
+    /// <returns>True if spawning conditions are met.</returns>
     private bool CanSpawnOnMap()
     {
         return mapGenerator != null
@@ -58,34 +72,42 @@ public class WorldEditor : MonoBehaviour
                && EcosystemManager.Instance != null;
     }
 
-    /// <summary> Listens for mouse input every frame </summary>
+    /// <summary>
+    /// Processes input and triggers spawn on valid click.
+    /// </summary>
     void Update()
     {
+        // Do nothing if no selection is active
         if (selection == 0)
         {
             return;
         }
 
+        // Only respond to initial click press
         if (!WasPrimaryClickPressedThisFrame())
         {
             return;
         }
 
-        // Input System UI module: must pass device id; parameterless IsPointerOverGameObject often blocks all game-view clicks.
+        // Prevent spawning when clicking UI elements
         if (IsPointerOverUiBlockingGame())
         {
             return;
         }
 
+        // Ensure simulation is ready for spawning
         if (!CanSpawnOnMap())
         {
             return;
         }
 
-        UnityEngine.Debug.Log($"Click detected. Selection: {selection}");
         SpawnAtMouse();
     }
 
+    /// <summary>
+    /// Detects primary mouse click using new or legacy input systems.
+    /// </summary>
+    /// <returns>True if click occurred this frame.</returns>
     private static bool WasPrimaryClickPressedThisFrame()
     {
         if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
@@ -99,6 +121,10 @@ public class WorldEditor : MonoBehaviour
 #endif
     }
 
+    /// <summary>
+    /// Checks if pointer is over UI to block world interaction.
+    /// </summary>
+    /// <returns>True if UI is blocking input.</returns>
     private static bool IsPointerOverUiBlockingGame()
     {
         if (EventSystem.current == null)
@@ -106,6 +132,7 @@ public class WorldEditor : MonoBehaviour
             return false;
         }
 
+        // Use device-specific check for new input system
         if (Mouse.current != null)
         {
             return EventSystem.current.IsPointerOverGameObject(Mouse.current.deviceId);
@@ -114,34 +141,42 @@ public class WorldEditor : MonoBehaviour
         return EventSystem.current.IsPointerOverGameObject();
     }
 
-    /// <summary> Selects which entity type to place; actual spawn happens on the next valid map click.</summary>
-    /// <param name="type"> Integer ID of selection type </param>
+    /// <summary>
+    /// Sets current placement selection.
+    /// </summary>
+    /// <param name="type">Entity selection type.</param>
     public void SetSelection(int type)
     {
+        // Prevent selection before simulation is ready
         if (!CanSpawnOnMap())
         {
             return;
         }
 
         selection = type;
-        UnityEngine.Debug.Log("Editor Mode: " + selection);
     }
 
-    /// <summary> UI alias for <see cref="SetSelection"/>.</summary>
+    /// <summary>
+    /// UI wrapper for selection.
+    /// </summary>
+    /// <param name="type">Entity selection type.</param>
     public void SelectAndSpawnOne(int type)
     {
         SetSelection(type);
     }
 
-    /// <summary> creates prefab of lifeform selection at mouse location </summary>
+    /// <summary>
+    /// Attempts to spawn selected entity at mouse position.
+    /// </summary>
     void SpawnAtMouse()
     {
-        UnityEngine.Debug.Log("SpawnAtMouse called");
+        // Ensure valid camera and simulation state
         if (!CanSpawnOnMap() || Camera.main == null)
         {
             return;
         }
 
+        // Convert screen position to world position on tilemap plane
         if (!TryGetWorldPointOnTilemapPlane(GetPointerScreenPosition(), out Vector3 worldOnPlane))
         {
             return;
@@ -150,6 +185,11 @@ public class WorldEditor : MonoBehaviour
         TrySpawnAtWorldPosition(worldOnPlane);
     }
 
+    /// <summary>
+    /// Attempts to spawn entity at a given world position.
+    /// </summary>
+    /// <param name="worldOnPlane">World position on tilemap plane.</param>
+    /// <returns>True if spawn succeeded.</returns>
     private bool TrySpawnAtWorldPosition(Vector3 worldOnPlane)
     {
         if (!CanSpawnOnMap())
@@ -157,17 +197,20 @@ public class WorldEditor : MonoBehaviour
             return false;
         }
 
+        // Convert world position to tilemap cell
         Vector3Int cellPos = squareTilemap.WorldToCell(worldOnPlane);
 
-        UnityEngine.Debug.Log($"HasTile: {squareTilemap.HasTile(cellPos)}, CellPos: {cellPos}");
-
+        // Prevent spawning outside valid tiles
         if (!squareTilemap.HasTile(cellPos))
         {
             return false;
         }
 
+        // Snap to tile center for consistent placement
         Vector3 spawnPos = squareTilemap.GetCellCenterWorld(cellPos);
         spawnPos.z = squareTilemap.transform.position.z;
+
+        // Spawn based on current selection
         switch (selection)
         {
             case 1:
@@ -190,6 +233,10 @@ public class WorldEditor : MonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// Retrieves pointer screen position for input systems.
+    /// </summary>
+    /// <returns>Screen position of pointer.</returns>
     private static Vector2 GetPointerScreenPosition()
     {
         if (Mouse.current != null)
@@ -204,23 +251,31 @@ public class WorldEditor : MonoBehaviour
     }
 
     /// <summary>
-    /// Orthographic + Input.mouse z=0 breaks ScreenToWorldPoint; intersect the camera ray with the tilemap Z plane.
+    /// Converts screen position to world position on tilemap plane.
     /// </summary>
+    /// <param name="screenPx">Screen position.</param>
+    /// <param name="worldPoint">Resulting world point.</param>
+    /// <returns>True if conversion succeeded.</returns>
     private bool TryGetWorldPointOnTilemapPlane(Vector2 screenPx, out Vector3 worldPoint)
     {
         worldPoint = default;
         Camera cam = Camera.main;
+
         if (cam == null || squareTilemap == null)
         {
             return false;
         }
 
         float planeZ = squareTilemap.transform.position.z;
+
+        // Cast ray from camera through screen point
         Ray ray = cam.ScreenPointToRay(new Vector3(screenPx.x, screenPx.y, 0f));
 
+        // Intersect ray with tilemap plane
         if (Mathf.Abs(ray.direction.z) > 1e-5f)
         {
             float t = (planeZ - ray.origin.z) / ray.direction.z;
+
             if (t >= 0f)
             {
                 worldPoint = ray.GetPoint(t);
@@ -228,7 +283,7 @@ public class WorldEditor : MonoBehaviour
             }
         }
 
-        // Fallback: distance from camera to plane along forward (typical 2D setup).
+        // Fallback for typical 2D orthographic setup
         float fallbackZ = Mathf.Abs(cam.transform.position.z - planeZ);
         worldPoint = cam.ScreenToWorldPoint(new Vector3(screenPx.x, screenPx.y, fallbackZ));
         return true;
