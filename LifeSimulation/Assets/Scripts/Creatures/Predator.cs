@@ -27,82 +27,82 @@ using UnityEngine;
 public class Predator : EntityBase
 {
     [Header("Movement")]
-    [SerializeField] private float huntSpeed     = 5f;
-    [SerializeField] private float patrolSpeed   = 2f;
-    [SerializeField] private float patrolRadius  = 4f;
-    [SerializeField] private float patrolInterval= 3f;
+    [SerializeField] private float huntSpeed = 5f;
+    [SerializeField] private float patrolSpeed = 2f;
+    [SerializeField] private float patrolRadius = 4f;
+    [SerializeField] private float patrolInterval = 3f;
 
     [Header("Detection & Attack")]
-    [SerializeField] private float detectRadius     = 9f;
-    [SerializeField] private float attackDamage     = 60f;
-    [SerializeField] private float attackCooldown   = 1f;
-    [SerializeField] private float nutritionGain    = 60f;
+    [SerializeField] private float detectRadius = 9f;
+    [SerializeField] private float attackDamage = 60f;
+    [SerializeField] private float attackCooldown = 1f;
+    [SerializeField] private float nutritionGain = 60f;
     // Chase is abandoned when prey exceeds this distance from the predator
     [SerializeField] private float maxChaseDistance = 20f;
 
     [Header("Reproduction")]
     [SerializeField] private float reproductionHungerThreshold = 80f;
-    [SerializeField] private float reproductionCooldown        = 30f;
+    [SerializeField] private float reproductionCooldown = 30f;
 
     // Separate from reproductionHungerThreshold so a single kill doesn't abort the hunt
     [SerializeField] private float huntHungerThreshold = 60f;
 
     [Header("Ambush")]
     // How close to a cover object before holding position
-    [SerializeField] private float ambushCoverRadius  = 1.2f;
+    [SerializeField] private float ambushCoverRadius = 1.2f;
     // Burst speed during the dash lunge
-    [SerializeField] private float ambushDashSpeed    = 14f;
+    [SerializeField] private float ambushDashSpeed = 14f;
     // How long the dash lasts in seconds
     [SerializeField] private float ambushDashDuration = 0.4f;
     // Max distance to prey before launching a dash
     [SerializeField] private float ambushTriggerRange = 5f;
     // Slow creep speed while moving toward cover
-    [SerializeField] private float ambushStalkSpeed   = 1.2f;
+    [SerializeField] private float ambushStalkSpeed = 1.2f;
 
     private enum State { Patrol, Hunt, Stalk, Dash }
-    private State             _state  = State.Patrol;
-    private Rigidbody2D       _rb;
+    private State _state = State.Patrol;
+    private Rigidbody2D _rb;
     private SteeringAvoidance _avoidance;
-    private PredatorGenetics  _genetics;
-    private StateLabel        _label;
-    private VisionCone        _cone;
-    private Vector2           _patrolTarget;
-    private float             _patrolTimer;
-    private float             _attackTimer;
-    private float             _reproTimer;
-    private Transform         _prey;
-    private string            _currentStateLabel = StateLabel.Patrol;
+    private PredatorGenetics _genetics;
+    private StateLabel _label;
+    private VisionCone _cone;
+    private Vector2 _patrolTarget;
+    private float _patrolTimer;
+    private float _attackTimer;
+    private float _reproTimer;
+    private Transform _prey;
+    private string _currentStateLabel = StateLabel.Patrol;
 
     // Ambush state tracking
     private Vector2 _coverPosition;
-    private float   _dashTimer  = 0f;
+    private float _dashTimer = 0f;
 
     // Venom tracking
     private EntityBase _venomTarget;
-    private float      _venomTimer;
+    private float _venomTimer;
     private const float VenomDuration = 8f;
 
     // Stuck detection uses goal progress rather than raw movement
-    private Vector2    _lastPosition;
-    private float      _stuckTimer      = 0f;
-    private float      _deadEndCooldown = 0f;
-    private const float StuckThreshold      = 3f;
-    private const float StuckMinMove        = 0.15f;
+    private Vector2 _lastPosition;
+    private float _stuckTimer = 0f;
+    private float _deadEndCooldown = 0f;
+    private const float StuckThreshold = 3f;
+    private const float StuckMinMove = 0.15f;
     private const float DeadEndCooldownTime = 0.5f;
 
     /// <summary>Caches all required components and initialises patrol state.</summary>
     protected override void Awake()
     {
         base.Awake();
-        _rb              = GetComponent<Rigidbody2D>();
+        _rb = GetComponent<Rigidbody2D>();
         _rb.gravityScale = 0f;
-        _rb.constraints  = RigidbodyConstraints2D.FreezeRotation;
-        _avoidance       = GetComponent<SteeringAvoidance>();
-        _genetics        = GetComponent<PredatorGenetics>();
-        _label           = GetComponentInChildren<StateLabel>();
-        _cone            = GetComponent<VisionCone>();
+        _rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+        _avoidance = GetComponent<SteeringAvoidance>();
+        _genetics = GetComponent<PredatorGenetics>();
+        _label = GetComponentInChildren<StateLabel>();
+        _cone = GetComponent<VisionCone>();
         // Start reproduction timer full so predators don't breed immediately on spawn
-        _reproTimer      = reproductionCooldown;
+        _reproTimer = reproductionCooldown;
         PickNewPatrolTarget();
         _lastPosition = transform.position;
     }
@@ -132,9 +132,9 @@ public class Predator : EntityBase
     /// <summary>Decrements all cooldown and interval timers each frame.</summary>
     private void UpdateTimers()
     {
-        _patrolTimer     -= Time.deltaTime;
-        _attackTimer     -= Time.deltaTime;
-        _reproTimer      -= Time.deltaTime;
+        _patrolTimer -= Time.deltaTime;
+        _attackTimer -= Time.deltaTime;
+        _reproTimer -= Time.deltaTime;
         _deadEndCooldown -= Time.deltaTime;
         if (_dashTimer > 0f) _dashTimer -= Time.deltaTime;
     }
@@ -163,7 +163,7 @@ public class Predator : EntityBase
                 if (distToPrey > maxChaseDistance)
                 {
                     // Prey escaped — give up and patrol
-                    _prey  = null;
+                    _prey = null;
                     _state = State.Patrol;
                     return;
                 }
@@ -173,7 +173,7 @@ public class Predator : EntityBase
                 {
                     if (IsHiddenByCover() && distToPrey <= ambushTriggerRange)
                     {
-                        _state     = State.Dash;
+                        _state = State.Dash;
                         _dashTimer = ambushDashDuration;
                     }
                 }
@@ -203,7 +203,7 @@ public class Predator : EntityBase
         }
         else
         {
-            _prey  = null;
+            _prey = null;
             _state = State.Patrol;
         }
     }
@@ -213,10 +213,10 @@ public class Predator : EntityBase
     {
         switch (_state)
         {
-            case State.Hunt:   ExecuteHunt();   break;
+            case State.Hunt: ExecuteHunt(); break;
             case State.Patrol: ExecutePatrol(); break;
-            case State.Stalk:  ExecuteStalk();  break;
-            case State.Dash:   ExecuteDash();   break;
+            case State.Stalk: ExecuteStalk(); break;
+            case State.Dash: ExecuteDash(); break;
         }
         UpdateLabel();
         _cone?.UpdateCone(_rb.linearVelocity, _currentStateLabel);
@@ -233,10 +233,10 @@ public class Predator : EntityBase
         if (IsDead) { _label.SetState(StateLabel.Dead); return; }
         _currentStateLabel = _state switch
         {
-            State.Hunt   => StateLabel.Hunt,
-            State.Stalk  => StateLabel.Stalk,
-            State.Dash   => StateLabel.Dash,
-            _            => StateLabel.Patrol,
+            State.Hunt => StateLabel.Hunt,
+            State.Stalk => StateLabel.Stalk,
+            State.Dash => StateLabel.Dash,
+            _ => StateLabel.Patrol,
         };
         _label.SetState(_currentStateLabel);
     }
@@ -246,7 +246,10 @@ public class Predator : EntityBase
     {
         if (_prey == null) { _state = State.Patrol; return; }
 
-        Vector2 dir = ((Vector2)_prey.position - (Vector2)transform.position).normalized;
+        Vector2 toprey = (Vector2)_prey.position - (Vector2)transform.position;
+        if (toprey.sqrMagnitude < 0.001f) return;
+
+        Vector2 dir = toprey.normalized;
         Vector2 vel = dir * huntSpeed;
         if (_genetics != null) vel *= _genetics.SpeedMultiplier;
         if (_genetics != null && _genetics.IsReptile && EnvironmentHandler.Instance != null)
@@ -257,7 +260,7 @@ public class Predator : EntityBase
             if (_avoidance.IsDeadEnd && _deadEndCooldown <= 0f)
             {
                 _deadEndCooldown = DeadEndCooldownTime;
-                _prey  = null;
+                _prey = null;
                 PickNewPatrolTarget();
             }
         }
@@ -270,6 +273,9 @@ public class Predator : EntityBase
         Vector2 toTarget = _patrolTarget - (Vector2)transform.position;
         if (toTarget.magnitude < 0.3f || _patrolTimer <= 0f)
             PickNewPatrolTarget();
+
+        toTarget = _patrolTarget - (Vector2)transform.position;
+        if (toTarget.sqrMagnitude < 0.001f) return;
 
         Vector2 vel = toTarget.normalized * patrolSpeed;
         if (_genetics != null) vel *= _genetics.SpeedMultiplier;
@@ -301,8 +307,8 @@ public class Predator : EntityBase
         }
 
         _coverPosition = cover;
-        Vector2 tocover     = _coverPosition - (Vector2)transform.position;
-        float   distToCover = tocover.magnitude;
+        Vector2 tocover = _coverPosition - (Vector2)transform.position;
+        float distToCover = tocover.magnitude;
 
         Vector2 vel;
         if (distToCover > ambushCoverRadius && distToCover > 0.001f)
@@ -329,6 +335,10 @@ public class Predator : EntityBase
                 _state = State.Hunt;
             }
         }
+
+        // Guard against NaN before assigning — can occur if avoidance
+        // normalises a near-zero vector internally
+        if (float.IsNaN(vel.x) || float.IsNaN(vel.y)) vel = Vector2.zero;
         _rb.linearVelocity = vel;
     }
 
@@ -341,7 +351,7 @@ public class Predator : EntityBase
         if (toprey.sqrMagnitude < 0.001f) return;
 
         // Dash ignores avoidance so nothing interrupts the lunge
-        float   speed = ambushDashSpeed * (_genetics != null ? _genetics.SpeedMultiplier : 1f);
+        float speed = ambushDashSpeed * (_genetics != null ? _genetics.SpeedMultiplier : 1f);
         if (_genetics != null && _genetics.IsReptile && EnvironmentHandler.Instance != null)
             speed *= EnvironmentHandler.Instance.GetReptileSpeedMultiplier();
         _rb.linearVelocity = toprey.normalized * speed;
@@ -353,7 +363,7 @@ public class Predator : EntityBase
     {
         if (_attackTimer > 0f) return;
 
-        bool hitsGrazer   = other.CompareTag("Grazer");
+        bool hitsGrazer = other.CompareTag("Grazer");
         // Apex Predator can also attack other predators
         bool hitsPredator = _genetics != null && _genetics.IsApexPredator && other.CompareTag("Predator");
 
@@ -390,7 +400,7 @@ public class Predator : EntityBase
         if (_genetics != null && _genetics.IsVenomous)
         {
             _venomTarget = target;
-            _venomTimer  = VenomDuration;
+            _venomTimer = VenomDuration;
         }
     }
 
@@ -401,7 +411,7 @@ public class Predator : EntityBase
         if (Hunger < reproductionHungerThreshold) return;
         _reproTimer = reproductionCooldown;
 
-        Genome myGenome   = _genetics != null ? _genetics.Genome : Genome.RandomPredator();
+        Genome myGenome = _genetics != null ? _genetics.Genome : Genome.RandomPredator();
         // Find a nearby mate; fall back to self-genome if none available
         Genome mateGenome = FindMateGenome() ?? myGenome;
         EcosystemManager.Instance?.SpawnPredatorOffspring((Vector2)transform.position, myGenome, mateGenome);
@@ -437,9 +447,9 @@ public class Predator : EntityBase
     private Transform FindNearestGrazer()
     {
         float currentRadius = GetCurrentDetectRadius();
-        Collider2D[] hits   = Physics2D.OverlapCircleAll(transform.position, currentRadius);
-        Transform    nearest = null;
-        float        minDist = float.MaxValue;
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, currentRadius);
+        Transform nearest = null;
+        float minDist = float.MaxValue;
         foreach (var h in hits)
         {
             if (!h.CompareTag("Grazer")) continue;
@@ -456,12 +466,12 @@ public class Predator : EntityBase
     private Transform FindNearestPrey()
     {
         float currentRadius = GetCurrentDetectRadius();
-        Collider2D[] hits   = Physics2D.OverlapCircleAll(transform.position, currentRadius);
-        Transform    nearest = null;
-        float        minDist = float.MaxValue;
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, currentRadius);
+        Transform nearest = null;
+        float minDist = float.MaxValue;
         foreach (var h in hits)
         {
-            bool isGrazer   = h.CompareTag("Grazer");
+            bool isGrazer = h.CompareTag("Grazer");
             // Apex Predator treats other predators as valid prey except itself
             bool isPredator = h.CompareTag("Predator") && h.gameObject != gameObject;
             if (!isGrazer && !isPredator) continue;
@@ -479,7 +489,7 @@ public class Predator : EntityBase
         if (_prey == null) return false;
 
         Vector2 toprey = (Vector2)_prey.position - (Vector2)transform.position;
-        float   dist   = toprey.magnitude;
+        float dist = toprey.magnitude;
         if (dist < 0.001f) return false;
 
         // A hit on Obstacle or Plant means the predator is hidden from prey
@@ -494,19 +504,19 @@ public class Predator : EntityBase
     {
         if (_prey == null) return Vector2.negativeInfinity;
 
-        float        searchRadius = Vector2.Distance(transform.position, _prey.position);
-        Collider2D[] hits         = Physics2D.OverlapCircleAll(transform.position, searchRadius);
+        float searchRadius = Vector2.Distance(transform.position, _prey.position);
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, searchRadius);
 
-        Vector2 best      = Vector2.negativeInfinity;
-        float   bestScore = float.MaxValue;
+        Vector2 best = Vector2.negativeInfinity;
+        float bestScore = float.MaxValue;
 
         foreach (var h in hits)
         {
             if (!h.CompareTag("Obstacle") && !h.CompareTag("Plant")) continue;
 
-            Vector2 coverPos      = h.bounds.center;
-            float   distToCover   = Vector2.Distance(transform.position, coverPos);
-            float   coverToPrey   = Vector2.Distance(coverPos, _prey.position);
+            Vector2 coverPos = h.bounds.center;
+            float distToCover = Vector2.Distance(transform.position, coverPos);
+            float coverToPrey = Vector2.Distance(coverPos, _prey.position);
 
             // Only consider cover that sits roughly between predator and prey
             if (coverToPrey > searchRadius) continue;
@@ -527,12 +537,12 @@ public class Predator : EntityBase
             : _patrolTarget;
 
         float distToGoal = Vector2.Distance(transform.position, goal);
-        float moved      = Vector2.Distance(transform.position, _lastPosition);
+        float moved = Vector2.Distance(transform.position, _lastPosition);
 
         // Reset timer when making meaningful progress toward the goal
         if (moved > StuckMinMove && distToGoal < Vector2.Distance(_lastPosition, goal) + 0.5f)
         {
-            _stuckTimer   = 0f;
+            _stuckTimer = 0f;
             _lastPosition = transform.position;
             return;
         }
@@ -540,18 +550,18 @@ public class Predator : EntityBase
         _stuckTimer += Time.deltaTime;
         if (_stuckTimer >= StuckThreshold)
         {
-            _stuckTimer        = 0f;
-            _deadEndCooldown   = 0f;
+            _stuckTimer = 0f;
+            _deadEndCooldown = 0f;
             _rb.linearVelocity = Vector2.zero;
 
             // Drop prey and patrol around the obstacle rather than staying stuck
             if (_state == State.Hunt || _state == State.Stalk)
             {
-                _prey  = null;
+                _prey = null;
                 _state = State.Patrol;
             }
 
-            _patrolTimer  = 0f;
+            _patrolTimer = 0f;
             PickNewPatrolTarget();
             _lastPosition = transform.position;
         }
@@ -570,36 +580,37 @@ public class Predator : EntityBase
 
         var b = BoundaryManager.Instance;
         float wallMargin = 1.5f;
-        float safeMinX   = Mathf.Min(b.MinX + wallMargin, b.MaxX - 0.1f);
-        float safeMaxX   = Mathf.Max(b.MaxX - wallMargin, b.MinX + 0.1f);
-        float safeMinY   = Mathf.Min(b.MinY + wallMargin, b.MaxY - 0.1f);
-        float safeMaxY   = Mathf.Max(b.MaxY - wallMargin, b.MinY + 0.1f);
+        float safeMinX = Mathf.Min(b.MinX + wallMargin, b.MaxX - 0.1f);
+        float safeMaxX = Mathf.Max(b.MaxX - wallMargin, b.MinX + 0.1f);
+        float safeMinY = Mathf.Min(b.MinY + wallMargin, b.MaxY - 0.1f);
+        float safeMaxY = Mathf.Max(b.MaxY - wallMargin, b.MinY + 0.1f);
 
-        Vector2 pos       = transform.position;
+        Vector2 pos = transform.position;
         Vector2 mapCenter = new Vector2((b.MinX + b.MaxX) * 0.5f, (b.MinY + b.MaxY) * 0.5f);
 
         // Normalise distance from centre to 0 (centre) to 1 (wall edge)
-        float halfW      = (b.MaxX - b.MinX) * 0.5f;
-        float halfH      = (b.MaxY - b.MinY) * 0.5f;
-        float edgeX      = Mathf.Clamp01(Mathf.Abs(pos.x - mapCenter.x) / halfW);
-        float edgeY      = Mathf.Clamp01(Mathf.Abs(pos.y - mapCenter.y) / halfH);
+        float halfW = (b.MaxX - b.MinX) * 0.5f;
+        float halfH = (b.MaxY - b.MinY) * 0.5f;
+        float edgeX = Mathf.Clamp01(Mathf.Abs(pos.x - mapCenter.x) / halfW);
+        float edgeY = Mathf.Clamp01(Mathf.Abs(pos.y - mapCenter.y) / halfH);
         float edgeFactor = Mathf.Max(edgeX, edgeY);
 
         Vector2 candidate;
         if (edgeFactor > 0.6f)
         {
             // Pull patrol target toward centre when close to a wall
-            Vector2 toCenter = (mapCenter - pos).normalized;
-            float   pullDist = Mathf.Lerp(patrolRadius, 6f, edgeFactor);
-            candidate = pos + toCenter * pullDist + (Vector2)(UnityEngine.Random.insideUnitCircle * patrolRadius * 0.5f);
+            Vector2 toCenter = mapCenter - pos;
+            if (toCenter.sqrMagnitude < 0.001f) toCenter = Vector2.up;
+            float pullDist = Mathf.Lerp(patrolRadius, 6f, edgeFactor);
+            candidate = pos + toCenter.normalized * pullDist + (Vector2)(UnityEngine.Random.insideUnitCircle * patrolRadius * 0.5f);
         }
         else
         {
             candidate = pos + UnityEngine.Random.insideUnitCircle.normalized * patrolRadius;
         }
 
-        candidate.x   = Mathf.Clamp(candidate.x, safeMinX, safeMaxX);
-        candidate.y   = Mathf.Clamp(candidate.y, safeMinY, safeMaxY);
+        candidate.x = Mathf.Clamp(candidate.x, safeMinX, safeMaxX);
+        candidate.y = Mathf.Clamp(candidate.y, safeMinY, safeMaxY);
         _patrolTarget = candidate;
     }
 
@@ -627,8 +638,8 @@ public class Predator : EntityBase
             float intensity = EnvironmentHandler.Instance.SunlightIntensity;
 
             // Night Vision raises the vision floor; without it the predator is nearly blind in dark
-            bool  hasNightVision = _genetics != null && _genetics.HasNightVision;
-            float floor          = hasNightVision ? 0.8f : 0.2f;
+            bool hasNightVision = _genetics != null && _genetics.HasNightVision;
+            float floor = hasNightVision ? 0.8f : 0.2f;
 
             visionMult = Mathf.Lerp(floor, 1.0f, intensity);
         }
