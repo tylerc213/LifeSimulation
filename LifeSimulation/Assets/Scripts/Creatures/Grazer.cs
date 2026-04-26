@@ -163,7 +163,7 @@ public class Grazer : EntityBase
             if (_state == State.SeekPlant && _targetPlant != null
                 && _targetPlant.gameObject.activeInHierarchy)
             {
-                return; 
+                return;
             }
 
             _targetPlant = FindBestPlant();
@@ -262,7 +262,10 @@ public class Grazer : EntityBase
             }
             if (_avoidance != null)
             {
+                // Widen the avoidance fan while seeking to catch obstacle corners earlier
+                _avoidance.FanAngleOverride = 160f;
                 vel = _avoidance.GetAvoidanceVelocity(vel);
+                _avoidance.FanAngleOverride = -1f;
                 if (_avoidance.IsDeadEnd && _deadEndCooldown <= 0f) { _deadEndCooldown = DeadEndCooldownTime; _targetPlant = null; PickNewWanderTarget(); }
             }
             _rb.linearVelocity = vel;
@@ -317,7 +320,7 @@ public class Grazer : EntityBase
         // Plant destroys itself on the last bite; null check clears our reference
         if (plant == null || !plant.gameObject.activeInHierarchy)
             _targetPlant = null;
-     
+
     }
 
     /// <summary>Reflects a portion of incoming damage back to the attacker if Spiky is expressed.</summary>
@@ -336,7 +339,7 @@ public class Grazer : EntityBase
         }
         base.TakeDamage(amount);
     }
-    
+
     /// <summary>Spawns a grazer offspring when hunger and cooldown conditions are met.</summary>
     private void TryReproduce()
     {
@@ -421,7 +424,9 @@ public class Grazer : EntityBase
         }
 
         _stuckTimer += Time.deltaTime;
-        if (_stuckTimer >= StuckThreshold)
+        // SeekPlant uses a tighter threshold since corners trap grazers faster
+        float stuckThreshold = (_state == State.SeekPlant) ? 1.2f : StuckThreshold;
+        if (_stuckTimer >= stuckThreshold)
         {
             _stuckTimer = 0f;
             _deadEndCooldown = 0f;
@@ -534,7 +539,7 @@ public class Grazer : EntityBase
             // Skip trigger colliders — those are detection zones, not physical bodies.
             // We only want to detect the actual root entity position.
             if (h.isTrigger) continue;
-             Plant p = h.GetComponentInParent<Plant>();
+            Plant p = h.GetComponentInParent<Plant>();
 
             // Walk up to the root tagged object in case the collider is on a child
             Transform root = h.transform;
